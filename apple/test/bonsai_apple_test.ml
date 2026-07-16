@@ -2716,6 +2716,66 @@ let test_swiftui_custom_view_supports_youtube_webkit_iframes () =
     "custom views should recognize youtube payloads by kind"
 ;;
 
+let test_custom_view_payload_updates_reuse_mounted_node () =
+  Backend.reset ();
+  let app =
+    App.create (fun graph ->
+      let payload, set_payload = Apple.state graph ~key:"payload" "first" in
+      Apple.vstack
+        [
+          Apple.custom_view ~kind:("app-webview:" ^ payload) ();
+          Apple.button "Update" ~on_click:(set_payload "second");
+        ])
+  in
+  App.flush_and_render app;
+  let root = Option.get (App.view app) in
+  let before = Backend.stats () in
+  Backend.click_exn root ~path:[ 1 ];
+  let diff = Backend.diff_stats before (Backend.stats ()) in
+  require
+    (diff.created = 0 && diff.destroyed = 0)
+    (Printf.sprintf
+       "custom view payload updates should reuse the mounted platform view; created=%d \
+        destroyed=%d"
+       diff.created
+       diff.destroyed);
+  require
+    (contains (Backend.show root) ~substring:"custom(app-webview:second)")
+    "custom view payload updates should reach the reused platform view"
+;;
+
+let test_custom_view_supports_change_messages () =
+  let source = read_file apple_source_path in
+  require
+    (contains source ~substring:"on_change : (string -> unit Action.t) option")
+    "custom views should optionally dispatch string messages into Bonsai";
+  require
+    (contains source ~substring:"Custom_view_node { key; kind; on_change }")
+    "custom view updates should install their change callback"
+;;
+
+let test_swiftui_custom_view_supports_interactive_bundle_webviews () =
+  let source = read_file swiftui_source_path in
+  require
+    (contains source ~substring:"BonsaiNativeAppWebView")
+    "app web views should use a dedicated UIViewRepresentable";
+  require
+    (contains source ~substring:"WKScriptMessageHandler")
+    "app web views should receive JavaScript messages";
+  require
+    (contains source ~substring:"loadFileURL")
+    "app web views should load body assets from the application bundle";
+  require
+    (contains source ~substring:"evaluateJavaScript")
+    "OCaml responses and navigation updates should be evaluated in the web body";
+  require
+    (contains source ~substring:"model.sendChange(node.changeEventId")
+    "JavaScript messages should be dispatched through the Bonsai event callback";
+  require
+    (contains source ~substring:"removeScriptMessageHandler")
+    "app web views should remove their script message handler when dismantled"
+;;
+
 let test_youtube_iframe_does_not_steal_list_row_gestures () =
   let source = read_file swiftui_source_path in
   require
@@ -3297,6 +3357,9 @@ let () =
   test_swiftui_image_view_reserves_requested_height_before_load ();
   test_swiftui_strict_list_rows_remove_default_insets ();
   test_swiftui_custom_view_supports_youtube_webkit_iframes ();
+  test_custom_view_payload_updates_reuse_mounted_node ();
+  test_custom_view_supports_change_messages ();
+  test_swiftui_custom_view_supports_interactive_bundle_webviews ();
   test_youtube_iframe_does_not_steal_list_row_gestures ();
   test_swiftui_prefers_inter_for_typography ();
   test_keyboard_dismiss_controls_renders ();

@@ -556,7 +556,7 @@ private struct BonsaiCompactSidebarToolbarModifier: ViewModifier {
 
 private extension View {
   func bonsaiBottomBarChrome() -> some View {
-    self
+    self.toolbarBackground(bonsaiHomeBodyBackground, for: .bottomBar)
   }
 
   @ViewBuilder
@@ -571,6 +571,7 @@ private extension View {
   func bonsaiNavigationChrome() -> some View {
     self
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+      .toolbarBackground(bonsaiHomeBodyBackground, for: .navigationBar)
       .background {
         bonsaiHomeBodyBackgroundLayer()
           .ignoresSafeArea(.container, edges: .all)
@@ -1907,6 +1908,131 @@ private struct BonsaiNativeYouTubeIframeView: UIViewRepresentable {
   }
 }
 
+private struct BonsaiNativeAppWebViewPayload: Decodable {
+  let resource: String
+  let navigationJavaScript: String?
+  let responseJavaScript: String?
+}
+
+private struct BonsaiNativeAppWebView: UIViewRepresentable {
+  let payload: String
+  let node: BonsaiNativeNode
+  let model: BonsaiNativeHostModel
+
+  func makeCoordinator() -> Coordinator {
+    Coordinator(node: node, model: model)
+  }
+
+  func makeUIView(context: Context) -> WKWebView {
+    let configuration = WKWebViewConfiguration()
+    configuration.userContentController.add(context.coordinator, name: "bonsaiNative")
+    let webView = WKWebView(frame: .zero, configuration: configuration)
+    webView.navigationDelegate = context.coordinator
+    context.coordinator.webView = webView
+    update(webView, coordinator: context.coordinator)
+    return webView
+  }
+
+  func updateUIView(_ webView: WKWebView, context: Context) {
+    update(webView, coordinator: context.coordinator)
+  }
+
+  static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+    webView.stopLoading()
+    webView.configuration.userContentController.removeScriptMessageHandler(
+      forName: "bonsaiNative"
+    )
+    webView.navigationDelegate = nil
+    webView.uiDelegate = nil
+    coordinator.webView = nil
+  }
+
+  private func update(_ webView: WKWebView, coordinator: Coordinator) {
+    guard let data = payload.data(using: .utf8),
+          let configuration = try? JSONDecoder().decode(
+            BonsaiNativeAppWebViewPayload.self,
+            from: data
+          ) else {
+      return
+    }
+
+    coordinator.navigationJavaScript = configuration.navigationJavaScript
+    coordinator.responseJavaScript = configuration.responseJavaScript
+    if coordinator.resource != configuration.resource {
+      coordinator.resource = configuration.resource
+      coordinator.isLoaded = false
+      coordinator.lastNavigationJavaScript = nil
+      coordinator.lastResponseJavaScript = nil
+      guard let bundleRoot = Bundle.main.resourceURL?.standardizedFileURL else { return }
+      let resourceURL = bundleRoot
+        .appendingPathComponent(configuration.resource)
+        .standardizedFileURL
+      let allowedPrefix = bundleRoot.path.hasSuffix("/") ? bundleRoot.path : bundleRoot.path + "/"
+      guard resourceURL.path.hasPrefix(allowedPrefix),
+            FileManager.default.fileExists(atPath: resourceURL.path) else {
+        return
+      }
+      webView.loadFileURL(resourceURL, allowingReadAccessTo: bundleRoot)
+    } else {
+      coordinator.applyPendingJavaScript()
+    }
+  }
+
+  final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+    let node: BonsaiNativeNode
+    let model: BonsaiNativeHostModel
+    weak var webView: WKWebView?
+    var resource: String?
+    var isLoaded = false
+    var navigationJavaScript: String?
+    var responseJavaScript: String?
+    var lastNavigationJavaScript: String?
+    var lastResponseJavaScript: String?
+
+    init(node: BonsaiNativeNode, model: BonsaiNativeHostModel) {
+      self.node = node
+      self.model = model
+    }
+
+    func webView(_ webView: WKWebView, didFinish _: WKNavigation!) {
+      isLoaded = true
+      self.webView = webView
+      applyPendingJavaScript()
+    }
+
+    func userContentController(
+      _: WKUserContentController,
+      didReceive message: WKScriptMessage
+    ) {
+      let text: String
+      if let value = message.body as? String {
+        text = value
+      } else if JSONSerialization.isValidJSONObject(message.body),
+                let data = try? JSONSerialization.data(withJSONObject: message.body),
+                let value = String(data: data, encoding: .utf8) {
+        text = value
+      } else {
+        text = String(describing: message.body)
+      }
+      model.sendChange(node.changeEventId, text: text)
+    }
+
+    func applyPendingJavaScript() {
+      guard isLoaded, let webView else { return }
+      if let navigationJavaScript,
+         navigationJavaScript != lastNavigationJavaScript {
+        lastNavigationJavaScript = navigationJavaScript
+        webView.evaluateJavaScript(navigationJavaScript)
+      }
+      if let responseJavaScript,
+         responseJavaScript != lastResponseJavaScript {
+        lastResponseJavaScript = responseJavaScript
+        webView.evaluateJavaScript(responseJavaScript)
+      }
+    }
+  }
+}
+
 private struct BonsaiNativeDeferredYouTubeIframeView: View {
   let payload: String
   @State private var isLoaded = false
@@ -1953,6 +2079,12 @@ private func youtubePayload(from kind: String) -> String? {
     return String(kind.dropFirst("youtube-iframe:".count))
   }
   return nil
+}
+
+private func appWebViewPayload(from kind: String) -> String? {
+  let prefix = "app-webview:"
+  guard kind.hasPrefix(prefix) else { return nil }
+  return String(kind.dropFirst(prefix.count))
 }
 
 private func youtubeHTML(payload: String) -> String {
@@ -3758,6 +3890,8 @@ private struct BonsaiNativeNodeView: View {
       } else if node.text == "system-grouped-background" {
         bonsaiHomeBodyBackgroundLayer()
           .ignoresSafeArea(.container, edges: .all)
+      } else if let payload = appWebViewPayload(from: node.text) {
+        BonsaiNativeAppWebView(payload: payload, node: node, model: model)
       } else if let payload = youtubePayload(from: node.text) {
         BonsaiNativeDeferredYouTubeIframeView(payload: payload)
       } else {

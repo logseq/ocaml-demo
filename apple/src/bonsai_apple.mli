@@ -555,7 +555,12 @@ val camera_capture_payload
   -> node
 
 val list_row : list_row -> node
-val custom_view : ?key:string -> kind:string -> unit -> node
+val custom_view
+  :  ?key:string
+  -> ?on_change:(string -> unit Action.t)
+  -> kind:string
+  -> unit
+  -> node
 val padding : ?insets:edge_insets -> node -> node
 val regular_material_panel : ?corner_radius:float -> node -> node
 val secondary_system_grouped_panel : ?corner_radius:float -> node -> node

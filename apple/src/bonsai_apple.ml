@@ -788,6 +788,7 @@ type node =
   | Custom_view_node of
       { key : string option
       ; kind : string
+      ; on_change : (string -> unit Action.t) option
       }
   | Modified_node of modifier * node
 
@@ -1555,7 +1556,7 @@ let camera_capture_payload ~title ?captured ~on_capture () =
 ;;
 
 let list_row row = List_row_node row
-let custom_view ?key ~kind () = Custom_view_node { key; kind }
+let custom_view ?key ?on_change ~kind () = Custom_view_node { key; kind; on_change }
 let default_insets = { top = 8.; leading = 8.; bottom = 8.; trailing = 8. }
 let padding ?(insets = default_insets) node = Modified_node (Padding insets, node)
 
@@ -1766,7 +1767,11 @@ let backend_kind = function
   | Modified_node _ -> assert false
 ;;
 
-let equal_backend_kind left right = left = right
+let equal_backend_kind left right =
+  match left, right with
+  | Custom_view _, Custom_view _ -> true
+  | _ -> left = right
+;;
 let equal_text_attributes left right = left = right
 
 module Renderer = struct
@@ -2568,7 +2573,7 @@ module Renderer = struct
         | Camera_capture_node { title; wants_payload; captured; on_capture = _ } ->
           "camera-capture:" ^ title ^ ":" ^ bool wants_payload ^ ":" ^ opt captured
         | Congrats_effect_node -> "congrats-effect"
-        | Custom_view_node { key; kind } -> "custom-view:" ^ opt key ^ ":" ^ kind
+        | Custom_view_node { key; kind; _ } -> "custom-view:" ^ opt key ^ ":" ^ kind
         | Modified_node _ -> assert false
       in
       shape ^ "|" ^ list (List.map modifiers ~f:modifier)
@@ -3270,9 +3275,13 @@ module Renderer = struct
            t.view
            (Some (fun image_id -> t.schedule_event (on_capture image_id)));
          replace_children []
-       | Custom_view_node _ ->
+       | Custom_view_node { kind; on_change; _ } ->
+         Backend.set_text t.view kind;
          Backend.set_on_click t.view None;
-         Backend.set_on_change t.view None;
+         Backend.set_on_change
+           t.view
+           (Option.map on_change ~f:(fun on_change message ->
+              t.schedule_event (on_change message)));
          replace_children []
        | Modified_node _ -> assert false);
       Backend.set_modifiers t.view ~schedule_event:t.schedule_event rendered_modifiers
@@ -4208,7 +4217,7 @@ module For_testing = struct
       | Camera_capture -> "camera-capture"
       | Progress_view -> "progress-view"
       | Congrats_effect -> "congrats-effect"
-      | Custom_view kind -> "custom(" ^ kind ^ ")"
+      | Custom_view _ -> "custom(" ^ Option.value view.text ~default:"" ^ ")"
     ;;
 
     let rendered_frame_alignment_name = function

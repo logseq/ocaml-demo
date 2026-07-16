@@ -2,6 +2,7 @@
  (name bonsai_apple_test)
  (deps
  ../swiftui/BonsaiNativeSwiftUI.swift
+ ../swiftui/BonsaiNativeSwiftUIMac.swift
  ../swiftui/bonsai_apple_swiftui.ml
  ../swiftui/bonsai_apple_swiftui.mli
  ../swiftui/bonsai_apple_swiftui_stubs.c
