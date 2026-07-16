@@ -2898,6 +2898,10 @@ let test_single_webview_uses_the_system_background () =
   require
     (contains source ~substring:"webView.scrollView.backgroundColor = .systemBackground")
     "the WebView scroll surface should follow Light and Dark system appearance"
+  ;
+  require
+    (contains source ~substring:"webView.underPageBackgroundColor = .systemBackground")
+    "WebKit content insets and overscroll should match the native system background"
 ;;
 
 let test_single_webview_refreshes_snapshots_when_system_appearance_changes () =
@@ -2911,7 +2915,7 @@ let test_single_webview_refreshes_snapshots_when_system_appearance_changes () =
   require
     (contains source
        ~substring:
-         "webView.scrollView.backgroundColor = .systemBackground\n    captureTopSnapshot()")
+         "webView.underPageBackgroundColor = .systemBackground\n    captureTopSnapshot()")
     "a Light or Dark appearance change should replace the retained route snapshot"
 ;;
 

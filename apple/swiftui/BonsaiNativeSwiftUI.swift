@@ -2026,6 +2026,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     webView.isOpaque = false
     webView.backgroundColor = .systemBackground
     webView.scrollView.backgroundColor = .systemBackground
+    webView.underPageBackgroundColor = .systemBackground
     super.init(nibName: nil, bundle: nil)
     registerForTraitChanges([UITraitUserInterfaceStyle.self]) {
       (controller: BonsaiNativeSingleWebViewNavigationController, _) in
@@ -2119,6 +2120,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     configureNavigationBarAppearance()
     webView.backgroundColor = .systemBackground
     webView.scrollView.backgroundColor = .systemBackground
+    webView.underPageBackgroundColor = .systemBackground
     captureTopSnapshot()
   }
 
