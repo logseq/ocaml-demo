@@ -2148,11 +2148,12 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
 
   private func finishUsingTransitionCoordinator(
     of controller: UIViewController,
-    routeAfterSuccess: BonsaiNativeSingleWebViewRoute? = nil
+    routeAfterSuccess: BonsaiNativeSingleWebViewRoute? = nil,
+    notifyPop: Bool = false
   ) {
     guard let transitionCoordinator = controller.transitionCoordinator
       ?? routeNavigationController.transitionCoordinator else {
-      finishTransition(routeAfterSuccess: routeAfterSuccess)
+      finishTransition(routeAfterSuccess: routeAfterSuccess, notifyPop: notifyPop)
       return
     }
     transitionCoordinator.animate(alongsideTransition: nil) { [weak self] context in
@@ -2161,16 +2162,25 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
         webView.isHidden = false
         isApplyingTransition = false
       } else {
-        finishTransition(routeAfterSuccess: routeAfterSuccess)
+        finishTransition(routeAfterSuccess: routeAfterSuccess, notifyPop: notifyPop)
       }
     }
   }
 
-  private func finishTransition(routeAfterSuccess: BonsaiNativeSingleWebViewRoute?) {
+  private func finishTransition(
+    routeAfterSuccess: BonsaiNativeSingleWebViewRoute?,
+    notifyPop: Bool = false
+  ) {
     let finish = { [weak self] in
       guard let self else { return }
       webView.isHidden = false
       isApplyingTransition = false
+      if notifyPop, let routeAfterSuccess {
+        model.sendChange(
+          node.changeEventId,
+          text: "navigation\tpop\t" + routeAfterSuccess.id
+        )
+      }
       if let pending = pendingPayload {
         pendingPayload = nil
         reconcile(pending)
@@ -2222,8 +2232,21 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
           let routeController = viewController as? BonsaiNativeSnapshotViewController else {
       return
     }
+    isApplyingTransition = true
+    if let current = payload,
+       let targetIndex = current.routes.firstIndex(where: { $0.id == routeController.route.id }) {
+      payload = BonsaiNativeSingleWebViewNavigationPayload(
+        resource: current.resource,
+        routes: Array(current.routes.prefix(targetIndex + 1)),
+        responseJavaScript: current.responseJavaScript
+      )
+    }
     webView.isHidden = true
-    finishUsingTransitionCoordinator(of: viewController, routeAfterSuccess: routeController.route)
+    finishUsingTransitionCoordinator(
+      of: viewController,
+      routeAfterSuccess: routeController.route,
+      notifyPop: true
+    )
   }
 
   func userContentController(

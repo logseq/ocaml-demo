@@ -2803,6 +2803,9 @@ let test_swiftui_supports_single_webview_native_navigation () =
     (contains source ~substring:"transitionCoordinator")
     "snapshot replacement should follow transition completion or cancellation";
   require
+    (contains source ~substring:"navigation\\tpop\\t")
+    "completed interactive pops should synchronize the route path back to OCaml";
+  require
     (not (contains source ~substring:"asyncAfter(deadline: .now() + 0.1)"))
     "single-WebView native navigation must not use timing-based snapshot cleanup"
 ;;
