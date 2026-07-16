@@ -2878,6 +2878,12 @@ let test_swiftui_tab_switch_does_not_crossfade_webview_surfaces () =
 let test_single_webview_uses_the_system_background () =
   let source = read_file swiftui_source_path in
   require
+    (contains source ~substring:"appearance.configureWithOpaqueBackground()")
+    "the navigation bar should not expose a differently themed scroll-edge layer";
+  require
+    (contains source ~substring:"navigationBar.scrollEdgeAppearance = appearance")
+    "the navigation bar and WebView body should use one continuous system background";
+  require
     (contains source
        ~substring:
          "view.backgroundColor = .systemBackground\n    routeNavigationController.view.backgroundColor = \
