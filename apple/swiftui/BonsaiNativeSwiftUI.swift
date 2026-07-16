@@ -1926,6 +1926,7 @@ private struct BonsaiNativeAppWebView: UIViewRepresentable {
   func makeUIView(context: Context) -> WKWebView {
     let configuration = WKWebViewConfiguration()
     configuration.userContentController.add(context.coordinator, name: "bonsaiNative")
+    configuration.setURLSchemeHandler(context.coordinator, forURLScheme: "bonsai-app")
     let webView = WKWebView(frame: .zero, configuration: configuration)
     webView.navigationDelegate = context.coordinator
     context.coordinator.webView = webView
@@ -1972,13 +1973,19 @@ private struct BonsaiNativeAppWebView: UIViewRepresentable {
             FileManager.default.fileExists(atPath: resourceURL.path) else {
         return
       }
-      webView.loadFileURL(resourceURL, allowingReadAccessTo: bundleRoot)
+      var url = URLComponents()
+      url.scheme = "bonsai-app"
+      url.host = "bundle"
+      url.path = "/" + configuration.resource
+      guard let resourceURL = url.url else { return }
+      webView.load(URLRequest(url: resourceURL))
     } else {
       coordinator.applyPendingJavaScript()
     }
   }
 
-  final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+  final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler,
+    WKURLSchemeHandler {
     let node: BonsaiNativeNode
     let model: BonsaiNativeHostModel
     weak var webView: WKWebView?
@@ -2015,6 +2022,60 @@ private struct BonsaiNativeAppWebView: UIViewRepresentable {
         text = String(describing: message.body)
       }
       model.sendChange(node.changeEventId, text: text)
+    }
+
+    func webView(_: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
+      guard let url = urlSchemeTask.request.url,
+            url.scheme == "bonsai-app",
+            let bundleRoot = Bundle.main.resourceURL?.standardizedFileURL else {
+        fail(urlSchemeTask, code: 1)
+        return
+      }
+      let relativePath = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+      let resourceURL = bundleRoot.appendingPathComponent(relativePath).standardizedFileURL
+      let allowedPrefix = bundleRoot.path.hasSuffix("/") ? bundleRoot.path : bundleRoot.path + "/"
+      guard resourceURL.path.hasPrefix(allowedPrefix),
+            let data = try? Data(contentsOf: resourceURL) else {
+        fail(urlSchemeTask, code: 2)
+        return
+      }
+      let response = URLResponse(
+        url: url,
+        mimeType: mimeType(for: resourceURL.pathExtension),
+        expectedContentLength: data.count,
+        textEncodingName: isTextResource(resourceURL.pathExtension) ? "utf-8" : nil
+      )
+      urlSchemeTask.didReceive(response)
+      urlSchemeTask.didReceive(data)
+      urlSchemeTask.didFinish()
+    }
+
+    func webView(_: WKWebView, stop _: WKURLSchemeTask) {}
+
+    private func fail(_ task: WKURLSchemeTask, code: Int) {
+      task.didFailWithError(
+        NSError(domain: "BonsaiNativeAppWebView", code: code)
+      )
+    }
+
+    private func mimeType(for pathExtension: String) -> String {
+      switch pathExtension.lowercased() {
+      case "html": "text/html"
+      case "css": "text/css"
+      case "js", "mjs": "text/javascript"
+      case "json", "map": "application/json"
+      case "wasm": "application/wasm"
+      case "svg": "image/svg+xml"
+      case "png": "image/png"
+      case "jpg", "jpeg": "image/jpeg"
+      case "webp": "image/webp"
+      default: "application/octet-stream"
+      }
+    }
+
+    private func isTextResource(_ pathExtension: String) -> Bool {
+      ["html", "css", "js", "mjs", "json", "map", "svg"]
+        .contains(pathExtension.lowercased())
     }
 
     func applyPendingJavaScript() {

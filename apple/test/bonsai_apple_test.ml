@@ -2769,8 +2769,11 @@ let test_swiftui_custom_view_supports_interactive_bundle_webviews () =
     (contains source ~substring:"WKScriptMessageHandler")
     "app web views should receive JavaScript messages";
   require
-    (contains source ~substring:"loadFileURL")
-    "app web views should load body assets from the application bundle";
+    (contains source ~substring:"WKURLSchemeHandler")
+    "app web views should serve bundle assets through a same-origin URL scheme";
+  require
+    (contains source ~substring:"setURLSchemeHandler")
+    "app web views should register their bundle URL scheme before loading";
   require
     (contains source ~substring:"evaluateJavaScript")
     "OCaml responses and navigation updates should be evaluated in the web body";
