@@ -2836,7 +2836,7 @@ let test_swiftui_supports_single_webview_native_navigation () =
        ~substring:
          "override func viewWillDisappear(_ animated: Bool) {\n    \
           super.viewWillDisappear(animated)\n    isVisible = false\n    \
-          concealWebViewBehindSnapshots()")
+          captureTopSnapshot()\n    concealWebViewBehindSnapshots()")
     "an inactive tab should show its retained route snapshot instead of a WebKit surface flash";
   require
     (contains source
@@ -2912,10 +2912,15 @@ let test_single_webview_refreshes_snapshots_when_system_appearance_changes () =
     (contains source ~substring:"private func handleAppearanceChange() {")
     "appearance changes should update the retained WebView controller";
   require
+    (contains source ~substring:"clearRouteSnapshots()")
+    "a Light or Dark appearance change should discard retained pixels from the old theme";
+  require
     (contains source
        ~substring:
-         "webView.underPageBackgroundColor = .systemBackground\n    captureTopSnapshot()")
-    "a Light or Dark appearance change should replace the retained route snapshot"
+         "private func clearRouteSnapshots() {\n    for case let controller as \
+          BonsaiNativeSnapshotViewController in routeNavigationController.viewControllers {\n      \
+          controller.updateSnapshot(nil)")
+    "every route in the tab stack should discard its stale appearance snapshot"
 ;;
 
 let test_youtube_iframe_does_not_steal_list_row_gestures () =

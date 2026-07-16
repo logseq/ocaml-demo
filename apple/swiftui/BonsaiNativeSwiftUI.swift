@@ -2082,6 +2082,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
   override func viewWillDisappear(_ animated: Bool) {
     super.viewWillDisappear(animated)
     isVisible = false
+    captureTopSnapshot()
     concealWebViewBehindSnapshots()
   }
 
@@ -2121,7 +2122,13 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     webView.backgroundColor = .systemBackground
     webView.scrollView.backgroundColor = .systemBackground
     webView.underPageBackgroundColor = .systemBackground
-    captureTopSnapshot()
+    clearRouteSnapshots()
+  }
+
+  private func clearRouteSnapshots() {
+    for case let controller as BonsaiNativeSnapshotViewController in routeNavigationController.viewControllers {
+      controller.updateSnapshot(nil)
+    }
   }
 
   deinit {
