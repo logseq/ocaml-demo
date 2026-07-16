@@ -2042,6 +2042,8 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
 
   override func viewDidLoad() {
     super.viewDidLoad()
+    view.backgroundColor = .systemBackground
+    routeNavigationController.view.backgroundColor = .systemBackground
     addChild(routeNavigationController)
     routeNavigationController.view.frame = view.bounds
     routeNavigationController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -2101,6 +2103,8 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
   }
 
   private func handleAppearanceChange() {
+    view.backgroundColor = .systemBackground
+    routeNavigationController.view.backgroundColor = .systemBackground
     webView.backgroundColor = .systemBackground
     webView.scrollView.backgroundColor = .systemBackground
     captureTopSnapshot()

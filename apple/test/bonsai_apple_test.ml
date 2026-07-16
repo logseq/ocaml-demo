@@ -2878,6 +2878,12 @@ let test_swiftui_tab_switch_does_not_crossfade_webview_surfaces () =
 let test_single_webview_uses_the_system_background () =
   let source = read_file swiftui_source_path in
   require
+    (contains source
+       ~substring:
+         "view.backgroundColor = .systemBackground\n    routeNavigationController.view.backgroundColor = \
+          .systemBackground")
+    "the native containers around the WebView should not expose a mismatched background";
+  require
     (contains source ~substring:"webView.isOpaque = false")
     "the WebView surface should allow the native system background through";
   require
@@ -2894,10 +2900,12 @@ let test_single_webview_refreshes_snapshots_when_system_appearance_changes () =
     (contains source ~substring:"registerForTraitChanges([UITraitUserInterfaceStyle.self])")
     "retained WebView tabs should observe runtime system appearance changes";
   require
+    (contains source ~substring:"private func handleAppearanceChange() {")
+    "appearance changes should update the retained WebView controller";
+  require
     (contains source
        ~substring:
-         "private func handleAppearanceChange() {\n    webView.backgroundColor = .systemBackground\n    \
-          webView.scrollView.backgroundColor = .systemBackground\n    captureTopSnapshot()")
+         "webView.scrollView.backgroundColor = .systemBackground\n    captureTopSnapshot()")
     "a Light or Dark appearance change should replace the retained route snapshot"
 ;;
 
