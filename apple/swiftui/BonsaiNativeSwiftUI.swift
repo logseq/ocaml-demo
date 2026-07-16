@@ -2066,6 +2066,9 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     guard !next.routes.isEmpty else { return }
     if loadedResource != next.resource {
       pendingPayload = next
+      if payload == nil {
+        installRouteControllers(next)
+      }
       loadedResource = next.resource
       var url = URLComponents()
       url.scheme = "bonsai-app"
@@ -2086,21 +2089,32 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
   func webView(_: WKWebView, didFinish _: WKNavigation!) {
     guard let next = pendingPayload else { return }
     pendingPayload = nil
-    installInitialStack(next)
+    activateTopRoute(next)
   }
 
-  private func installInitialStack(_ next: BonsaiNativeSingleWebViewNavigationPayload) {
+  private func installRouteControllers(
+    _ next: BonsaiNativeSingleWebViewNavigationPayload
+  ) {
     payload = next
-    let controllers = next.routes.enumerated().map { index, route in
-      let controller = BonsaiNativeSnapshotViewController(route: route, image: nil)
-      controller.navigationItem.hidesBackButton = index == 0
-      return controller
+    let controllers = next.routes.map { route in
+      BonsaiNativeSnapshotViewController(route: route, image: nil)
     }
     routeNavigationController.setViewControllers(controllers, animated: false)
+  }
+
+  private func activateTopRoute(
+    _ next: BonsaiNativeSingleWebViewNavigationPayload
+  ) {
+    payload = next
     applyRoute(next.routes.last!, responseJavaScript: next.responseJavaScript) { [weak self] in
       self?.captureTopSnapshot()
       self?.revealWebViewAboveSnapshots()
     }
+  }
+
+  private func installInitialStack(_ next: BonsaiNativeSingleWebViewNavigationPayload) {
+    installRouteControllers(next)
+    activateTopRoute(next)
   }
 
   private func reconcile(_ next: BonsaiNativeSingleWebViewNavigationPayload) {

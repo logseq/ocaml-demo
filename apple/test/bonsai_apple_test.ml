@@ -2809,8 +2809,20 @@ let test_swiftui_supports_single_webview_native_navigation () =
     (not (contains source ~substring:"webView.isHidden = true"))
     "a hidden WebView cannot produce a valid incoming route snapshot";
   require
-    (contains source ~substring:"navigationItem.hidesBackButton = index == 0")
-    "the root route should not expose a back action";
+    (contains source
+       ~substring:
+         "if payload == nil {\n        installRouteControllers(next)\n      }\n      \
+          loadedResource = next.resource")
+    "the initial native route stack should exist before its WebView starts loading";
+  require
+    (contains source
+       ~substring:
+         "func webView(_: WKWebView, didFinish _: WKNavigation!) {\n    guard let next = \
+          pendingPayload else { return }\n    pendingPayload = nil\n    activateTopRoute(next)")
+    "WebView load completion should activate rather than reinstall the native stack";
+  require
+    (not (contains source ~substring:"hiddenLeadingItem"))
+    "a correctly initialized root stack should not need a synthetic leading item";
   require
     (contains source ~substring:"navigation\\tpop\\t")
     "completed interactive pops should synchronize the route path back to OCaml";
