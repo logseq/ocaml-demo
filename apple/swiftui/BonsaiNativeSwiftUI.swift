@@ -2045,7 +2045,6 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     super.viewDidLoad()
     view.backgroundColor = .systemBackground
     routeNavigationController.view.backgroundColor = .systemBackground
-    configureNavigationBarAppearance()
     addChild(routeNavigationController)
     routeNavigationController.view.frame = view.bounds
     routeNavigationController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -2104,20 +2103,9 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     revealWebViewAboveSnapshots()
   }
 
-  private func configureNavigationBarAppearance() {
-    let appearance = UINavigationBarAppearance()
-    appearance.configureWithOpaqueBackground()
-    appearance.backgroundColor = .systemBackground
-    let navigationBar = routeNavigationController.navigationBar
-    navigationBar.standardAppearance = appearance
-    navigationBar.scrollEdgeAppearance = appearance
-    navigationBar.compactAppearance = appearance
-  }
-
   private func handleAppearanceChange() {
     view.backgroundColor = .systemBackground
     routeNavigationController.view.backgroundColor = .systemBackground
-    configureNavigationBarAppearance()
     webView.backgroundColor = .systemBackground
     webView.scrollView.backgroundColor = .systemBackground
     webView.underPageBackgroundColor = .systemBackground
