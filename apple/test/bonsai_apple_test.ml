@@ -2785,6 +2785,28 @@ let test_swiftui_custom_view_supports_interactive_bundle_webviews () =
     "app web views should remove their script message handler when dismantled"
 ;;
 
+let test_swiftui_supports_single_webview_native_navigation () =
+  let source = read_file swiftui_source_path in
+  require
+    (contains source ~substring:"BonsaiNativeSingleWebViewNavigation")
+    "single-WebView navigation should use a dedicated native container";
+  require
+    (contains source ~substring:"private let webView: WKWebView")
+    "the native navigation container should own exactly one live WebView";
+  require
+    (contains source ~substring:"UINavigationController")
+    "route snapshots should transition through native navigation";
+  require
+    (contains source ~substring:"takeSnapshot(with:")
+    "inactive route surfaces should be native snapshots";
+  require
+    (contains source ~substring:"transitionCoordinator")
+    "snapshot replacement should follow transition completion or cancellation";
+  require
+    (not (contains source ~substring:"asyncAfter(deadline: .now() + 0.1)"))
+    "single-WebView native navigation must not use timing-based snapshot cleanup"
+;;
+
 let test_youtube_iframe_does_not_steal_list_row_gestures () =
   let source = read_file swiftui_source_path in
   require
@@ -3369,6 +3391,7 @@ let () =
   test_custom_view_payload_updates_reuse_mounted_node ();
   test_custom_view_supports_change_messages ();
   test_swiftui_custom_view_supports_interactive_bundle_webviews ();
+  test_swiftui_supports_single_webview_native_navigation ();
   test_youtube_iframe_does_not_steal_list_row_gestures ();
   test_swiftui_prefers_inter_for_typography ();
   test_keyboard_dismiss_controls_renders ();

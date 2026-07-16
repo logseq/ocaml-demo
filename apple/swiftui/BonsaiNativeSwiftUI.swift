@@ -1914,6 +1914,356 @@ private struct BonsaiNativeAppWebViewPayload: Decodable {
   let responseJavaScript: String?
 }
 
+private struct BonsaiNativeSingleWebViewRoute: Decodable {
+  let id: String
+  let title: String
+  let navigationJavaScript: String
+}
+
+private struct BonsaiNativeSingleWebViewNavigationPayload: Decodable {
+  let resource: String
+  let routes: [BonsaiNativeSingleWebViewRoute]
+  let responseJavaScript: String?
+}
+
+private final class BonsaiNativeBundleSchemeHandler: NSObject, WKURLSchemeHandler {
+  func webView(_: WKWebView, start task: WKURLSchemeTask) {
+    guard let url = task.request.url,
+          url.scheme == "bonsai-app",
+          let bundleRoot = Bundle.main.resourceURL?.standardizedFileURL else {
+      task.didFailWithError(NSError(domain: "BonsaiNativeBundle", code: 1))
+      return
+    }
+    let relativePath = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    let resourceURL = bundleRoot.appendingPathComponent(relativePath).standardizedFileURL
+    let allowedPrefix = bundleRoot.path.hasSuffix("/") ? bundleRoot.path : bundleRoot.path + "/"
+    guard resourceURL.path.hasPrefix(allowedPrefix),
+          let data = try? Data(contentsOf: resourceURL) else {
+      task.didFailWithError(NSError(domain: "BonsaiNativeBundle", code: 2))
+      return
+    }
+    let ext = resourceURL.pathExtension.lowercased()
+    let mimeType: String = switch ext {
+    case "html": "text/html"
+    case "css": "text/css"
+    case "js", "mjs": "text/javascript"
+    case "json", "map": "application/json"
+    case "wasm": "application/wasm"
+    case "svg": "image/svg+xml"
+    case "png": "image/png"
+    case "jpg", "jpeg": "image/jpeg"
+    case "webp": "image/webp"
+    default: "application/octet-stream"
+    }
+    let textEncoding = ["html", "css", "js", "mjs", "json", "map", "svg"]
+      .contains(ext) ? "utf-8" : nil
+    task.didReceive(
+      URLResponse(
+        url: url,
+        mimeType: mimeType,
+        expectedContentLength: data.count,
+        textEncodingName: textEncoding
+      )
+    )
+    task.didReceive(data)
+    task.didFinish()
+  }
+
+  func webView(_: WKWebView, stop _: WKURLSchemeTask) {}
+}
+
+private final class BonsaiNativeSnapshotViewController: UIViewController {
+  let route: BonsaiNativeSingleWebViewRoute
+  private let imageView = UIImageView()
+
+  init(route: BonsaiNativeSingleWebViewRoute, image: UIImage?) {
+    self.route = route
+    super.init(nibName: nil, bundle: nil)
+    navigationItem.title = route.title
+    imageView.image = image
+  }
+
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .systemBackground
+    imageView.frame = view.bounds
+    imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    imageView.contentMode = .scaleToFill
+    view.addSubview(imageView)
+  }
+
+  func updateSnapshot(_ image: UIImage?) {
+    imageView.image = image
+  }
+}
+
+private final class BonsaiNativeSingleWebViewNavigationController: UIViewController,
+  UINavigationControllerDelegate, WKNavigationDelegate, WKScriptMessageHandler {
+  private let schemeHandler = BonsaiNativeBundleSchemeHandler()
+  private let webView: WKWebView
+  private let routeNavigationController = UINavigationController()
+  private let node: BonsaiNativeNode
+  private let model: BonsaiNativeHostModel
+  private var payload: BonsaiNativeSingleWebViewNavigationPayload?
+  private var currentRouteID: String?
+  private var loadedResource: String?
+  private var pendingPayload: BonsaiNativeSingleWebViewNavigationPayload?
+  private var isApplyingTransition = false
+
+  init(node: BonsaiNativeNode, model: BonsaiNativeHostModel) {
+    self.node = node
+    self.model = model
+    let configuration = WKWebViewConfiguration()
+    configuration.setURLSchemeHandler(schemeHandler, forURLScheme: "bonsai-app")
+    webView = WKWebView(frame: .zero, configuration: configuration)
+    super.init(nibName: nil, bundle: nil)
+    configuration.userContentController.add(self, name: "bonsaiNative")
+    webView.navigationDelegate = self
+    routeNavigationController.delegate = self
+  }
+
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    addChild(routeNavigationController)
+    routeNavigationController.view.frame = view.bounds
+    routeNavigationController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    view.addSubview(routeNavigationController.view)
+    routeNavigationController.didMove(toParent: self)
+    webView.frame = routeNavigationController.view.bounds
+    webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    routeNavigationController.view.insertSubview(
+      webView,
+      belowSubview: routeNavigationController.navigationBar
+    )
+  }
+
+  deinit {
+    webView.configuration.userContentController.removeScriptMessageHandler(
+      forName: "bonsaiNative"
+    )
+  }
+
+  func apply(_ next: BonsaiNativeSingleWebViewNavigationPayload) {
+    guard !next.routes.isEmpty else { return }
+    if loadedResource != next.resource {
+      pendingPayload = next
+      loadedResource = next.resource
+      var url = URLComponents()
+      url.scheme = "bonsai-app"
+      url.host = "bundle"
+      url.path = "/" + next.resource
+      if let resourceURL = url.url {
+        webView.load(URLRequest(url: resourceURL))
+      }
+      return
+    }
+    guard !isApplyingTransition else {
+      pendingPayload = next
+      return
+    }
+    reconcile(next)
+  }
+
+  func webView(_: WKWebView, didFinish _: WKNavigation!) {
+    guard let next = pendingPayload else { return }
+    pendingPayload = nil
+    installInitialStack(next)
+  }
+
+  private func installInitialStack(_ next: BonsaiNativeSingleWebViewNavigationPayload) {
+    payload = next
+    let controllers = next.routes.map {
+      BonsaiNativeSnapshotViewController(route: $0, image: nil)
+    }
+    routeNavigationController.setViewControllers(controllers, animated: false)
+    applyRoute(next.routes.last!, responseJavaScript: next.responseJavaScript) { [weak self] in
+      self?.captureTopSnapshot()
+      self?.webView.isHidden = false
+    }
+  }
+
+  private func reconcile(_ next: BonsaiNativeSingleWebViewNavigationPayload) {
+    let previousCount = payload?.routes.count ?? 0
+    let nextCount = next.routes.count
+    let previousRouteIDs = payload?.routes.map(\.id) ?? []
+    let nextRouteIDs = next.routes.map(\.id)
+    if nextRouteIDs == previousRouteIDs, let route = next.routes.last {
+      payload = next
+      applyRoute(route, responseJavaScript: next.responseJavaScript) { [weak self] in
+        self?.captureTopSnapshot()
+      }
+    } else if nextCount == previousCount + 1, let route = next.routes.last {
+      push(route, payload: next)
+    } else if nextCount < previousCount {
+      pop(to: next)
+    } else {
+      installInitialStack(next)
+    }
+  }
+
+  private func push(
+    _ route: BonsaiNativeSingleWebViewRoute,
+    payload next: BonsaiNativeSingleWebViewNavigationPayload
+  ) {
+    isApplyingTransition = true
+    captureTopSnapshot { [weak self] in
+      guard let self else { return }
+      webView.isHidden = true
+      applyRoute(route, responseJavaScript: next.responseJavaScript) { [weak self] in
+        guard let self else { return }
+        captureSnapshot { [weak self] image in
+          guard let self else { return }
+          let controller = BonsaiNativeSnapshotViewController(route: route, image: image)
+          payload = next
+          currentRouteID = route.id
+          routeNavigationController.pushViewController(controller, animated: true)
+          finishUsingTransitionCoordinator(of: controller)
+        }
+      }
+    }
+  }
+
+  private func pop(to next: BonsaiNativeSingleWebViewNavigationPayload) {
+    isApplyingTransition = true
+    captureTopSnapshot { [weak self] in
+      guard let self, let route = next.routes.last else { return }
+      webView.isHidden = true
+      payload = next
+      let targetCount = next.routes.count
+      if targetCount < routeNavigationController.viewControllers.count {
+        let target = routeNavigationController.viewControllers[targetCount - 1]
+        routeNavigationController.popToViewController(target, animated: true)
+        finishUsingTransitionCoordinator(of: target, routeAfterSuccess: route)
+      }
+    }
+  }
+
+  private func finishUsingTransitionCoordinator(
+    of controller: UIViewController,
+    routeAfterSuccess: BonsaiNativeSingleWebViewRoute? = nil
+  ) {
+    guard let transitionCoordinator = controller.transitionCoordinator
+      ?? routeNavigationController.transitionCoordinator else {
+      finishTransition(routeAfterSuccess: routeAfterSuccess)
+      return
+    }
+    transitionCoordinator.animate(alongsideTransition: nil) { [weak self] context in
+      guard let self else { return }
+      if context.isCancelled {
+        webView.isHidden = false
+        isApplyingTransition = false
+      } else {
+        finishTransition(routeAfterSuccess: routeAfterSuccess)
+      }
+    }
+  }
+
+  private func finishTransition(routeAfterSuccess: BonsaiNativeSingleWebViewRoute?) {
+    let finish = { [weak self] in
+      guard let self else { return }
+      webView.isHidden = false
+      isApplyingTransition = false
+      if let pending = pendingPayload {
+        pendingPayload = nil
+        reconcile(pending)
+      }
+    }
+    if let routeAfterSuccess {
+      currentRouteID = routeAfterSuccess.id
+      applyRoute(routeAfterSuccess, responseJavaScript: payload?.responseJavaScript, completion: finish)
+    } else {
+      finish()
+    }
+  }
+
+  private func applyRoute(
+    _ route: BonsaiNativeSingleWebViewRoute,
+    responseJavaScript: String?,
+    completion: @escaping () -> Void
+  ) {
+    currentRouteID = route.id
+    let script = """
+    (() => {
+      (route.navigationJavaScript)
+      (responseJavaScript ?? "")
+      return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    })()
+    """
+    webView.evaluateJavaScript(script) { _, _ in completion() }
+  }
+
+  private func captureTopSnapshot(completion: (() -> Void)? = nil) {
+    captureSnapshot { [weak self] image in
+      (self?.routeNavigationController.topViewController as? BonsaiNativeSnapshotViewController)?
+        .updateSnapshot(image)
+      completion?()
+    }
+  }
+
+  private func captureSnapshot(completion: @escaping (UIImage?) -> Void) {
+    webView.takeSnapshot(with: nil) { image, _ in completion(image) }
+  }
+
+  func navigationController(
+    _: UINavigationController,
+    willShow viewController: UIViewController,
+    animated: Bool
+  ) {
+    guard animated,
+          !isApplyingTransition,
+          let routeController = viewController as? BonsaiNativeSnapshotViewController else {
+      return
+    }
+    webView.isHidden = true
+    finishUsingTransitionCoordinator(of: viewController, routeAfterSuccess: routeController.route)
+  }
+
+  func userContentController(
+    _: WKUserContentController,
+    didReceive message: WKScriptMessage
+  ) {
+    let text = message.body as? String ?? String(describing: message.body)
+    model.sendChange(node.changeEventId, text: text)
+  }
+}
+
+private struct BonsaiNativeSingleWebViewNavigation: UIViewControllerRepresentable {
+  let payload: String
+  let node: BonsaiNativeNode
+  let model: BonsaiNativeHostModel
+
+  func makeUIViewController(context _: Context)
+    -> BonsaiNativeSingleWebViewNavigationController {
+    let controller = BonsaiNativeSingleWebViewNavigationController(node: node, model: model)
+    update(controller)
+    return controller
+  }
+
+  func updateUIViewController(
+    _ controller: BonsaiNativeSingleWebViewNavigationController,
+    context _: Context
+  ) {
+    update(controller)
+  }
+
+  private func update(_ controller: BonsaiNativeSingleWebViewNavigationController) {
+    guard let data = payload.data(using: .utf8),
+          let decoded = try? JSONDecoder().decode(
+            BonsaiNativeSingleWebViewNavigationPayload.self,
+            from: data
+          ) else { return }
+    controller.apply(decoded)
+  }
+}
+
 private struct BonsaiNativeAppWebView: UIViewRepresentable {
   let payload: String
   let node: BonsaiNativeNode
@@ -2144,6 +2494,12 @@ private func youtubePayload(from kind: String) -> String? {
 
 private func appWebViewPayload(from kind: String) -> String? {
   let prefix = "app-webview:"
+  guard kind.hasPrefix(prefix) else { return nil }
+  return String(kind.dropFirst(prefix.count))
+}
+
+private func singleWebViewNavigationPayload(from kind: String) -> String? {
+  let prefix = "app-webview-navigation:"
   guard kind.hasPrefix(prefix) else { return nil }
   return String(kind.dropFirst(prefix.count))
 }
@@ -3951,6 +4307,9 @@ private struct BonsaiNativeNodeView: View {
       } else if node.text == "system-grouped-background" {
         bonsaiHomeBodyBackgroundLayer()
           .ignoresSafeArea(.container, edges: .all)
+      } else if let payload = singleWebViewNavigationPayload(from: node.text) {
+        BonsaiNativeSingleWebViewNavigation(payload: payload, node: node, model: model)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else if let payload = appWebViewPayload(from: node.text) {
         BonsaiNativeAppWebView(payload: payload, node: node, model: model)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
