@@ -2760,6 +2760,12 @@ let test_swiftui_custom_view_supports_interactive_bundle_webviews () =
     (contains source ~substring:"BonsaiNativeAppWebView")
     "app web views should use a dedicated UIViewRepresentable";
   require
+    (contains source
+       ~substring:
+         "BonsaiNativeAppWebView(payload: payload, node: node, model: model)\n          \
+          .frame(maxWidth: .infinity, maxHeight: .infinity)")
+    "app web views should fill the body instead of collapsing to zero height";
+  require
     (contains source ~substring:"WKScriptMessageHandler")
     "app web views should receive JavaScript messages";
   require

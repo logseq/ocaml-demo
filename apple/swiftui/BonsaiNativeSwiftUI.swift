@@ -3892,6 +3892,7 @@ private struct BonsaiNativeNodeView: View {
           .ignoresSafeArea(.container, edges: .all)
       } else if let payload = appWebViewPayload(from: node.text) {
         BonsaiNativeAppWebView(payload: payload, node: node, model: model)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else if let payload = youtubePayload(from: node.text) {
         BonsaiNativeDeferredYouTubeIframeView(payload: payload)
       } else {
