@@ -2091,8 +2091,10 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
 
   private func installInitialStack(_ next: BonsaiNativeSingleWebViewNavigationPayload) {
     payload = next
-    let controllers = next.routes.map {
-      BonsaiNativeSnapshotViewController(route: $0, image: nil)
+    let controllers = next.routes.enumerated().map { index, route in
+      let controller = BonsaiNativeSnapshotViewController(route: route, image: nil)
+      controller.navigationItem.hidesBackButton = index == 0
+      return controller
     }
     routeNavigationController.setViewControllers(controllers, animated: false)
     applyRoute(next.routes.last!, responseJavaScript: next.responseJavaScript) { [weak self] in
