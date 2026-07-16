@@ -2826,7 +2826,7 @@ let test_swiftui_supports_single_webview_native_navigation () =
   require
     (contains source
        ~substring:
-         "let bodyTop = routeNavigationController.navigationBar.frame.maxY")
+         "webView.topAnchor.constraint(equalTo: routeNavigationController.navigationBar.bottomAnchor)")
     "the live WebView body should start below the native navigation bar";
   require
     (contains source ~substring:"edgesForExtendedLayout = []")
@@ -2921,6 +2921,37 @@ let test_single_webview_refreshes_snapshots_when_system_appearance_changes () =
           BonsaiNativeSnapshotViewController in routeNavigationController.viewControllers {\n      \
           controller.updateSnapshot(nil)")
     "every route in the tab stack should discard its stale appearance snapshot"
+;;
+
+let test_single_webview_executes_route_and_response_javascript () =
+  let source = read_file swiftui_source_path in
+  require
+    (contains source ~substring:{|\(route.navigationJavaScript)|})
+    "native navigation should interpolate the route JavaScript into the evaluated script";
+  require
+    (contains source ~substring:{|\(responseJavaScript ?? "")|})
+    "native store responses should interpolate into the evaluated script so Web UI refreshes";
+  require
+    (not (contains source ~substring:"      (route.navigationJavaScript)"))
+    "route JavaScript must not be emitted as an undefined JavaScript variable"
+;;
+
+let test_single_webview_has_stable_initial_body_constraints () =
+  let source = read_file swiftui_source_path in
+  require
+    (contains source ~substring:"webView.translatesAutoresizingMaskIntoConstraints = false")
+    "the WebView should use constraints before its first visible layout";
+  require
+    (contains source ~substring:"webView.scrollView.contentInsetAdjustmentBehavior = .never")
+    "WebKit should not add a second delayed safe-area inset after initial layout";
+  require
+    (contains source
+       ~substring:
+         "webView.topAnchor.constraint(equalTo: routeNavigationController.navigationBar.bottomAnchor)")
+    "the body should be anchored below the native header from its initial frame";
+  require
+    (not (contains source ~substring:"let bodyTop = routeNavigationController.navigationBar.frame.maxY"))
+    "the initial body position must not jump after measuring a later navigation bar frame"
 ;;
 
 let test_youtube_iframe_does_not_steal_list_row_gestures () =
@@ -3511,6 +3542,8 @@ let () =
   test_swiftui_tab_switch_does_not_crossfade_webview_surfaces ();
   test_single_webview_uses_the_system_background ();
   test_single_webview_refreshes_snapshots_when_system_appearance_changes ();
+  test_single_webview_executes_route_and_response_javascript ();
+  test_single_webview_has_stable_initial_body_constraints ();
   test_youtube_iframe_does_not_steal_list_row_gestures ();
   test_swiftui_prefers_inter_for_typography ();
   test_keyboard_dismiss_controls_renders ();

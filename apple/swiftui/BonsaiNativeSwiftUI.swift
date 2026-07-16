@@ -2026,6 +2026,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     webView.isOpaque = false
     webView.backgroundColor = .systemBackground
     webView.scrollView.backgroundColor = .systemBackground
+    webView.scrollView.contentInsetAdjustmentBehavior = .never
     webView.underPageBackgroundColor = .systemBackground
     super.init(nibName: nil, bundle: nil)
     registerForTraitChanges([UITraitUserInterfaceStyle.self]) {
@@ -2051,21 +2052,17 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     routeNavigationController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     view.addSubview(routeNavigationController.view)
     routeNavigationController.didMove(toParent: self)
+    webView.translatesAutoresizingMaskIntoConstraints = false
     routeNavigationController.view.insertSubview(
       webView,
       belowSubview: routeNavigationController.navigationBar
     )
-  }
-
-  override func viewDidLayoutSubviews() {
-    super.viewDidLayoutSubviews()
-    let bodyTop = routeNavigationController.navigationBar.frame.maxY
-    webView.frame = CGRect(
-      x: 0,
-      y: bodyTop,
-      width: routeNavigationController.view.bounds.width,
-      height: max(0, routeNavigationController.view.bounds.height - bodyTop)
-    )
+    NSLayoutConstraint.activate([
+      webView.topAnchor.constraint(equalTo: routeNavigationController.navigationBar.bottomAnchor),
+      webView.leadingAnchor.constraint(equalTo: routeNavigationController.view.leadingAnchor),
+      webView.trailingAnchor.constraint(equalTo: routeNavigationController.view.trailingAnchor),
+      webView.bottomAnchor.constraint(equalTo: routeNavigationController.view.bottomAnchor),
+    ])
   }
 
   override func viewWillAppear(_ animated: Bool) {
@@ -2305,8 +2302,8 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     currentRouteID = route.id
     let script = """
     (() => {
-      (route.navigationJavaScript)
-      (responseJavaScript ?? "")
+      \(route.navigationJavaScript)
+      \(responseJavaScript ?? "")
       return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     })()
     """
