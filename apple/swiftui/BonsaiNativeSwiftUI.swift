@@ -2023,7 +2023,14 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     let configuration = WKWebViewConfiguration()
     configuration.setURLSchemeHandler(schemeHandler, forURLScheme: "bonsai-app")
     webView = WKWebView(frame: .zero, configuration: configuration)
+    webView.isOpaque = false
+    webView.backgroundColor = .systemBackground
+    webView.scrollView.backgroundColor = .systemBackground
     super.init(nibName: nil, bundle: nil)
+    registerForTraitChanges([UITraitUserInterfaceStyle.self]) {
+      (controller: BonsaiNativeSingleWebViewNavigationController, _) in
+      controller.handleAppearanceChange()
+    }
     configuration.userContentController.add(self, name: "bonsaiNative")
     webView.navigationDelegate = self
     routeNavigationController.delegate = self
@@ -2091,6 +2098,12 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
       return
     }
     revealWebViewAboveSnapshots()
+  }
+
+  private func handleAppearanceChange() {
+    webView.backgroundColor = .systemBackground
+    webView.scrollView.backgroundColor = .systemBackground
+    captureTopSnapshot()
   }
 
   deinit {

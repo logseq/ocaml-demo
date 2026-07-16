@@ -2875,6 +2875,32 @@ let test_swiftui_tab_switch_does_not_crossfade_webview_surfaces () =
     "native WebView tabs should switch without a SwiftUI content cross-fade"
 ;;
 
+let test_single_webview_uses_the_system_background () =
+  let source = read_file swiftui_source_path in
+  require
+    (contains source ~substring:"webView.isOpaque = false")
+    "the WebView surface should allow the native system background through";
+  require
+    (contains source ~substring:"webView.backgroundColor = .systemBackground")
+    "the WebView should use the same semantic background as native routes";
+  require
+    (contains source ~substring:"webView.scrollView.backgroundColor = .systemBackground")
+    "the WebView scroll surface should follow Light and Dark system appearance"
+;;
+
+let test_single_webview_refreshes_snapshots_when_system_appearance_changes () =
+  let source = read_file swiftui_source_path in
+  require
+    (contains source ~substring:"registerForTraitChanges([UITraitUserInterfaceStyle.self])")
+    "retained WebView tabs should observe runtime system appearance changes";
+  require
+    (contains source
+       ~substring:
+         "private func handleAppearanceChange() {\n    webView.backgroundColor = .systemBackground\n    \
+          webView.scrollView.backgroundColor = .systemBackground\n    captureTopSnapshot()")
+    "a Light or Dark appearance change should replace the retained route snapshot"
+;;
+
 let test_youtube_iframe_does_not_steal_list_row_gestures () =
   let source = read_file swiftui_source_path in
   require
@@ -3461,6 +3487,8 @@ let () =
   test_swiftui_custom_view_supports_interactive_bundle_webviews ();
   test_swiftui_supports_single_webview_native_navigation ();
   test_swiftui_tab_switch_does_not_crossfade_webview_surfaces ();
+  test_single_webview_uses_the_system_background ();
+  test_single_webview_refreshes_snapshots_when_system_appearance_changes ();
   test_youtube_iframe_does_not_steal_list_row_gestures ();
   test_swiftui_prefers_inter_for_typography ();
   test_keyboard_dismiss_controls_renders ();
