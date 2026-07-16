@@ -2803,6 +2803,12 @@ let test_swiftui_supports_single_webview_native_navigation () =
     (contains source ~substring:"transitionCoordinator")
     "snapshot replacement should follow transition completion or cancellation";
   require
+    (contains source ~substring:"sendSubviewToBack(webView)")
+    "the live WebView should keep rendering behind route snapshots";
+  require
+    (not (contains source ~substring:"webView.isHidden = true"))
+    "a hidden WebView cannot produce a valid incoming route snapshot";
+  require
     (contains source ~substring:"navigation\\tpop\\t")
     "completed interactive pops should synchronize the route path back to OCaml";
   require

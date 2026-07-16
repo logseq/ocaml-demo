@@ -2045,6 +2045,17 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     )
   }
 
+  private func concealWebViewBehindSnapshots() {
+    routeNavigationController.view.sendSubviewToBack(webView)
+  }
+
+  private func revealWebViewAboveSnapshots() {
+    routeNavigationController.view.insertSubview(
+      webView,
+      belowSubview: routeNavigationController.navigationBar
+    )
+  }
+
   deinit {
     webView.configuration.userContentController.removeScriptMessageHandler(
       forName: "bonsaiNative"
@@ -2086,7 +2097,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     routeNavigationController.setViewControllers(controllers, animated: false)
     applyRoute(next.routes.last!, responseJavaScript: next.responseJavaScript) { [weak self] in
       self?.captureTopSnapshot()
-      self?.webView.isHidden = false
+      self?.revealWebViewAboveSnapshots()
     }
   }
 
@@ -2116,7 +2127,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     isApplyingTransition = true
     captureTopSnapshot { [weak self] in
       guard let self else { return }
-      webView.isHidden = true
+      concealWebViewBehindSnapshots()
       applyRoute(route, responseJavaScript: next.responseJavaScript) { [weak self] in
         guard let self else { return }
         captureSnapshot { [weak self] image in
@@ -2135,7 +2146,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     isApplyingTransition = true
     captureTopSnapshot { [weak self] in
       guard let self, let route = next.routes.last else { return }
-      webView.isHidden = true
+      concealWebViewBehindSnapshots()
       payload = next
       let targetCount = next.routes.count
       if targetCount < routeNavigationController.viewControllers.count {
@@ -2159,7 +2170,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     transitionCoordinator.animate(alongsideTransition: nil) { [weak self] context in
       guard let self else { return }
       if context.isCancelled {
-        webView.isHidden = false
+        revealWebViewAboveSnapshots()
         isApplyingTransition = false
       } else {
         finishTransition(routeAfterSuccess: routeAfterSuccess, notifyPop: notifyPop)
@@ -2173,7 +2184,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
   ) {
     let finish = { [weak self] in
       guard let self else { return }
-      webView.isHidden = false
+      revealWebViewAboveSnapshots()
       isApplyingTransition = false
       if notifyPop, let routeAfterSuccess {
         model.sendChange(
@@ -2241,7 +2252,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
         responseJavaScript: current.responseJavaScript
       )
     }
-    webView.isHidden = true
+    concealWebViewBehindSnapshots()
     finishUsingTransitionCoordinator(
       of: viewController,
       routeAfterSuccess: routeController.route,
