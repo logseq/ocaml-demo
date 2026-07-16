@@ -2824,11 +2824,55 @@ let test_swiftui_supports_single_webview_native_navigation () =
     (not (contains source ~substring:"hiddenLeadingItem"))
     "a correctly initialized root stack should not need a synthetic leading item";
   require
+    (contains source
+       ~substring:
+         "let bodyTop = routeNavigationController.navigationBar.frame.maxY")
+    "the live WebView body should start below the native navigation bar";
+  require
+    (contains source ~substring:"edgesForExtendedLayout = []")
+    "route snapshots should use the same below-header content area";
+  require
+    (contains source
+       ~substring:
+         "override func viewWillDisappear(_ animated: Bool) {\n    \
+          super.viewWillDisappear(animated)\n    isVisible = false\n    \
+          concealWebViewBehindSnapshots()")
+    "an inactive tab should show its retained route snapshot instead of a WebKit surface flash";
+  require
+    (contains source
+       ~substring:
+         "override func viewDidAppear(_ animated: Bool) {\n    super.viewDidAppear(animated)\n    \
+          isVisible = true\n    showLiveWebViewIfReady()")
+    "a selected tab should restore its ready live WebView after appearing";
+  require
+    (contains source ~substring:"guard isVisible, isPageReady")
+    "an unloaded or inactive tab must keep the snapshot above its WebView";
+  require
     (contains source ~substring:"navigation\\tpop\\t")
     "completed interactive pops should synchronize the route path back to OCaml";
   require
     (not (contains source ~substring:"asyncAfter(deadline: .now() + 0.1)"))
     "single-WebView native navigation must not use timing-based snapshot cleanup"
+;;
+
+let test_swiftui_tab_switch_does_not_crossfade_webview_surfaces () =
+  let source = read_file swiftui_source_path in
+  require
+    (contains source ~substring:"var transaction = Transaction(animation: nil)")
+    "tab selection should create a transaction without animation";
+  require
+    (contains source ~substring:"transaction.disablesAnimations = true")
+    "tab selection should disable inherited system animation";
+  require
+    (contains source
+       ~substring:"withTransaction(transaction) {\n          node.selectedTabId = value")
+    "tab selection should update through a transaction that disables system content animation";
+  require
+    (contains source
+       ~substring:
+         "content.transaction { transaction in\n      transaction.animation = nil\n      \
+          transaction.disablesAnimations = true\n    }")
+    "native WebView tabs should switch without a SwiftUI content cross-fade"
 ;;
 
 let test_youtube_iframe_does_not_steal_list_row_gestures () =
@@ -3416,6 +3460,7 @@ let () =
   test_custom_view_supports_change_messages ();
   test_swiftui_custom_view_supports_interactive_bundle_webviews ();
   test_swiftui_supports_single_webview_native_navigation ();
+  test_swiftui_tab_switch_does_not_crossfade_webview_surfaces ();
   test_youtube_iframe_does_not_steal_list_row_gestures ();
   test_swiftui_prefers_inter_for_typography ();
   test_keyboard_dismiss_controls_renders ();

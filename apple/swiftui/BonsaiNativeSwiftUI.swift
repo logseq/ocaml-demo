@@ -1979,6 +1979,7 @@ private final class BonsaiNativeSnapshotViewController: UIViewController {
   init(route: BonsaiNativeSingleWebViewRoute, image: UIImage?) {
     self.route = route
     super.init(nibName: nil, bundle: nil)
+    edgesForExtendedLayout = []
     navigationItem.title = route.title
     imageView.image = image
   }
@@ -2013,6 +2014,8 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
   private var loadedResource: String?
   private var pendingPayload: BonsaiNativeSingleWebViewNavigationPayload?
   private var isApplyingTransition = false
+  private var isVisible = false
+  private var isPageReady = false
 
   init(node: BonsaiNativeNode, model: BonsaiNativeHostModel) {
     self.node = node
@@ -2037,12 +2040,38 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     routeNavigationController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     view.addSubview(routeNavigationController.view)
     routeNavigationController.didMove(toParent: self)
-    webView.frame = routeNavigationController.view.bounds
-    webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     routeNavigationController.view.insertSubview(
       webView,
       belowSubview: routeNavigationController.navigationBar
     )
+  }
+
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    let bodyTop = routeNavigationController.navigationBar.frame.maxY
+    webView.frame = CGRect(
+      x: 0,
+      y: bodyTop,
+      width: routeNavigationController.view.bounds.width,
+      height: max(0, routeNavigationController.view.bounds.height - bodyTop)
+    )
+  }
+
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    isVisible = true
+  }
+
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    isVisible = true
+    showLiveWebViewIfReady()
+  }
+
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    isVisible = false
+    concealWebViewBehindSnapshots()
   }
 
   private func concealWebViewBehindSnapshots() {
@@ -2054,6 +2083,14 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
       webView,
       belowSubview: routeNavigationController.navigationBar
     )
+  }
+
+  private func showLiveWebViewIfReady() {
+    guard isVisible, isPageReady else {
+      concealWebViewBehindSnapshots()
+      return
+    }
+    revealWebViewAboveSnapshots()
   }
 
   deinit {
@@ -2107,8 +2144,9 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
   ) {
     payload = next
     applyRoute(next.routes.last!, responseJavaScript: next.responseJavaScript) { [weak self] in
+      self?.isPageReady = true
       self?.captureTopSnapshot()
-      self?.revealWebViewAboveSnapshots()
+      self?.showLiveWebViewIfReady()
     }
   }
 
@@ -2186,7 +2224,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
     transitionCoordinator.animate(alongsideTransition: nil) { [weak self] context in
       guard let self else { return }
       if context.isCancelled {
-        revealWebViewAboveSnapshots()
+        showLiveWebViewIfReady()
         isApplyingTransition = false
       } else {
         finishTransition(routeAfterSuccess: routeAfterSuccess, notifyPop: notifyPop)
@@ -2200,7 +2238,7 @@ private final class BonsaiNativeSingleWebViewNavigationController: UIViewControl
   ) {
     let finish = { [weak self] in
       guard let self else { return }
-      revealWebViewAboveSnapshots()
+      showLiveWebViewIfReady()
       isApplyingTransition = false
       if notifyPop, let routeAfterSuccess {
         model.sendChange(
@@ -5034,7 +5072,11 @@ private struct BonsaiNativeNodeView: View {
     Binding(
       get: { node.selectedTabId },
       set: { value in
-        node.selectedTabId = value
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+          node.selectedTabId = value
+        }
         model.sendChange(node.tabSelectEventId, text: value)
       }
     )
@@ -5801,11 +5843,15 @@ private struct BonsaiNativeNodeView: View {
         }
       }
     }
+    let stableContent = content.transaction { transaction in
+      transaction.animation = nil
+      transaction.disablesAnimations = true
+    }
 
     if #available(iOS 26.0, *), node.tabs.contains(where: { $0.role == 1 }) {
-      content.tabViewSearchActivation(.searchTabSelection)
+      stableContent.tabViewSearchActivation(.searchTabSelection)
     } else {
-      content
+      stableContent
     }
   }
 
