@@ -1,6 +1,6 @@
 # Apple Native Build
 
-The Apple package lives under `apple/` and exposes `bonsai_apple`.
+The Apple package lives under `apple/` and exposes `ocaml_demo_apple`.
 
 It uses the local OCaml graph runtime, SwiftUI backend, and OCaml 5.4.1 iOS
 cross switches.
@@ -8,7 +8,7 @@ cross switches.
 ## Host Dependencies
 
 ```sh
-cd ~/Codes/projects/bonsai-native
+cd ~/Codes/projects/ocaml-demo
 opam switch create . 5.4.1
 eval "$(opam env)"
 opam repo add janestreet-bleeding https://github.com/janestreet/opam-repository.git --this-switch
@@ -88,7 +88,7 @@ opam install --switch=device-5.4.1 . --deps-only --with-test
 IOS_TARGET=arm64-apple-ios17.0-simulator \
 IOS_ARCH=arm64 \
 IOS_SDKROOT=$(xcrun --sdk iphonesimulator --show-sdk-path) \
-opam exec -- dune build apple/examples/BonsaiNativeDemos.app \
+opam exec -- dune build apple/examples/OCamlDemoDemos.app \
   --workspace dune-workspace.simulator
 ```
 
@@ -98,7 +98,7 @@ For a physical device:
 IOS_TARGET=arm64-apple-ios17.0 \
 IOS_ARCH=arm64 \
 IOS_SDKROOT=$(xcrun --sdk iphoneos --show-sdk-path) \
-opam exec -- dune build apple/examples/BonsaiNativeDemos.app \
+opam exec -- dune build apple/examples/OCamlDemoDemos.app \
   --workspace dune-workspace.device
 ```
 

@@ -1,0 +1,19 @@
+opam-version: "2.0"
+maintainer: "Tienson Qin"
+authors: ["Tienson Qin"]
+homepage: "https://github.com/tiensonqin/ocaml-demo"
+bug-reports: "https://github.com/tiensonqin/ocaml-demo/issues"
+dev-repo: "git+https://github.com/tiensonqin/ocaml-demo.git"
+license: "MIT"
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+]
+depends: [
+  "ocaml" {>= "5.1.0"}
+  "dune" {>= "3.17.0"}
+  "ocaml_demo_native"
+]
+synopsis: "Native Apple UI backend for OCaml"
+description: """
+A SwiftUI-like declarative native Apple UI framework for OCaml.
+"""

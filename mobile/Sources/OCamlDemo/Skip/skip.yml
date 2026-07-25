@@ -1,0 +1,3 @@
+# Skip configuration for the shared OCamlDemo renderer.
+skip:
+  mode: 'transpiled'

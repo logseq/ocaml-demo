@@ -1,7 +1,7 @@
 # Native SwiftUI backend
 
 This backend is a SwiftUI implementation target for the OCaml
-`Bonsai_apple.Renderer.Backend` shape.
+`Ocaml_demo_apple.Renderer.Backend` shape.
 
 The boundary is intentionally generic:
 
@@ -15,9 +15,9 @@ SwiftUI is the maintained Apple renderer.
 The Swift side does not contain app-specific UI. App UX should come from the OCaml node tree and backend styling conventions.
 
 App authors should not edit this backend to build one screen. They should use
-`Bonsai_apple` primitives. If a native concept such as bottom tabs, sidebars, or
+`Ocaml_demo_apple` primitives. If a native concept such as bottom tabs, sidebars, or
 split navigation is missing, add it once to the shared OCaml API and implement
-it in `bonsai_apple.swiftui`.
+it in `ocaml_demo_apple.swiftui`.
 
 The current Swift runtime exposes C symbols for:
 
@@ -25,6 +25,6 @@ The current Swift runtime exposes C symbols for:
 - Updating text, placeholder, spacing, children, event ids, searchable state, and sheets.
 - Hosting a root node in a `UIHostingController`.
 
-The OCaml `bonsai_apple.swiftui` module implements
-`Bonsai_apple.Renderer.Backend` by calling these symbols. App targets that
+The OCaml `ocaml_demo_apple.swiftui` module implements
+`Ocaml_demo_apple.Renderer.Backend` by calling these symbols. App targets that
 instantiate it must also link the compiled Swift runtime object or archive.

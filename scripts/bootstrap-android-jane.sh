@@ -26,9 +26,9 @@ EOF
 }
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-switch_name=${BONSAI_ANDROID_OPAM_SWITCH:-${BONSAI_NATIVE_OPAM_SWITCH:-$repo_root}}
-workspace=${BONSAI_ANDROID_WORKSPACE:-dune-workspace.basement-flags}
-dune_jobs=${BONSAI_ANDROID_DUNE_JOBS:-1}
+switch_name=${OCAML_DEMO_ANDROID_OPAM_SWITCH:-${OCAML_DEMO_OPAM_SWITCH:-$repo_root}}
+workspace=${OCAML_DEMO_ANDROID_WORKSPACE:-dune-workspace.basement-flags}
+dune_jobs=${OCAML_DEMO_ANDROID_DUNE_JOBS:-1}
 clean=false
 dry_run=false
 link_host_tools=true
@@ -182,8 +182,8 @@ default_packages=(
   bignum
   incr_map
   virtual_dom
-  bonsai_concrete
-  bonsai
+  ocaml_demo_concrete
+  ocaml_demo
 )
 
 if ((${#packages[@]} == 0)); then

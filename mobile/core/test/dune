@@ -1,0 +1,9 @@
+(executable
+ (name ocaml_demo_mobile_rpc_test)
+ (libraries ocaml_demo_mobile_rpc yojson))
+
+(rule
+ (alias runtest)
+ (deps ocaml_demo_mobile_rpc_test.exe)
+ (action
+  (run ./ocaml_demo_mobile_rpc_test.exe)))

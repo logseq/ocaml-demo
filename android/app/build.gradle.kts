@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.logseq.bonsaiandroid"
+    namespace = "com.logseq.ocamldemo"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.logseq.bonsaiandroid"
+        applicationId = "com.logseq.ocamldemo"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

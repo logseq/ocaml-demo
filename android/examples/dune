@@ -1,8 +1,8 @@
 (library
- (name bonsai_android_examples)
+ (name ocaml_demo_android_examples)
  (wrapped false)
  (modules android_demo_components counter_component)
- (libraries bonsai_android)
+ (libraries ocaml_demo_android ocaml_demo_model)
  (modes :standard melange))
 
 (executables
@@ -16,16 +16,16 @@
   export_counter_json
   counter_interaction_smoke
   shared_surface_smoke)
- (libraries bonsai_android bonsai_android_examples))
+ (libraries ocaml_demo_android ocaml_demo_android_examples))
 
 (executable
  (name android_counter_entry)
  (modules android_counter_entry)
  (modes exe shared_object)
- (libraries bonsai_android bonsai_android_examples)
+ (libraries ocaml_demo_android ocaml_demo_android_examples)
  (foreign_stubs
   (language c)
-  (names bonsai_android_jni_wrapper)
+  (names ocaml_demo_android_jni_wrapper)
   (include_dirs
    ../jni
    %{env:JAVA_HOME=/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home}/include

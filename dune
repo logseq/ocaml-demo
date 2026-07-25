@@ -1,0 +1,15 @@
+(rule
+ (alias shared-platform-check)
+ (deps
+  (alias_rec web-demo)
+  examples/shared/test/ocaml_demo_model_test.exe
+  mobile/core/test/ocaml_demo_mobile_rpc_test.exe
+  android/examples/counter_interaction_smoke.exe
+  apple/examples/ocaml_demo_apple_examples.cma
+  apple/examples/OCamlDemoMacDemos.app/Contents/Info.plist
+  apple/examples/OCamlDemoMacDemos.app/Contents/MacOS/OCamlDemoMacDemos)
+ (action
+  (progn
+   (run examples/shared/test/ocaml_demo_model_test.exe)
+   (run mobile/core/test/ocaml_demo_mobile_rpc_test.exe)
+   (run android/examples/counter_interaction_smoke.exe))))

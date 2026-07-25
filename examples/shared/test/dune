@@ -1,0 +1,9 @@
+(executable
+ (name ocaml_demo_model_test)
+ (libraries ocaml_demo_model))
+
+(rule
+ (alias runtest)
+ (deps ocaml_demo_model_test.exe)
+ (action
+  (run ./ocaml_demo_model_test.exe)))

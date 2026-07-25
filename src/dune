@@ -1,5 +1,5 @@
 (library
- (name bonsai_android)
- (public_name bonsai_android)
- (libraries bonsai_native)
+ (name ocaml_demo_android)
+ (public_name ocaml_demo_android)
+ (libraries ocaml_demo_native)
  (modes :standard melange))

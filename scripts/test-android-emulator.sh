@@ -6,18 +6,18 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 android_home=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}
 adb="$android_home/platform-tools/adb"
 emulator="$android_home/emulator/emulator"
-avd_name=${BONSAI_ANDROID_AVD:-Medium_Phone_API_36.1}
+avd_name=${OCAML_DEMO_ANDROID_AVD:-Medium_Phone_API_36.1}
 apk="$repo_root/android/app/build/outputs/apk/debug/app-debug.apk"
-screenshot=${BONSAI_ANDROID_SCREENSHOT:-/tmp/bonsai-native-demo.png}
-before_xml=${BONSAI_ANDROID_BEFORE_XML:-/tmp/bonsai-native-demo-before.xml}
-after_xml=${BONSAI_ANDROID_AFTER_XML:-/tmp/bonsai-native-demo-after.xml}
-todo_xml=${BONSAI_ANDROID_TODO_XML:-/tmp/bonsai-native-demo-todo.xml}
-search_xml=${BONSAI_ANDROID_SEARCH_XML:-/tmp/bonsai-native-demo-search.xml}
+screenshot=${OCAML_DEMO_ANDROID_SCREENSHOT:-/tmp/ocaml-demo.png}
+before_xml=${OCAML_DEMO_ANDROID_BEFORE_XML:-/tmp/ocaml-demo-before.xml}
+after_xml=${OCAML_DEMO_ANDROID_AFTER_XML:-/tmp/ocaml-demo-after.xml}
+todo_xml=${OCAML_DEMO_ANDROID_TODO_XML:-/tmp/ocaml-demo-todo.xml}
+search_xml=${OCAML_DEMO_ANDROID_SEARCH_XML:-/tmp/ocaml-demo-search.xml}
 
 dump_ui() {
   local output=$1
-  "$adb" shell uiautomator dump /sdcard/bonsai-native-ui.xml >/dev/null
-  "$adb" pull /sdcard/bonsai-native-ui.xml "$output" >/dev/null
+  "$adb" shell uiautomator dump /sdcard/ocaml-demo-ui.xml >/dev/null
+  "$adb" pull /sdcard/ocaml-demo-ui.xml "$output" >/dev/null
 }
 
 tap_text() {
@@ -25,8 +25,8 @@ tap_text() {
   local xml=$2
   local point
   point=$(
-    BONSAI_NATIVE_TAP_TEXT=$text perl -ne '
-      my $text = $ENV{"BONSAI_NATIVE_TAP_TEXT"};
+    OCAML_DEMO_TAP_TEXT=$text perl -ne '
+      my $text = $ENV{"OCAML_DEMO_TAP_TEXT"};
       if (/text="\Q$text\E"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/) {
         print int(($1 + $3) / 2) . " " . int(($2 + $4) / 2);
         exit;
@@ -66,7 +66,7 @@ fi
 
 booted_device=$("$adb" devices | awk '$2 == "device" { print $1; exit }')
 if [[ -z "$booted_device" ]]; then
-  log_file=${BONSAI_ANDROID_EMULATOR_LOG:-/tmp/bonsai-native-emulator.log}
+  log_file=${OCAML_DEMO_ANDROID_EMULATOR_LOG:-/tmp/ocaml-demo-emulator.log}
   emulator_args=(
     "@$avd_name"
     -no-snapshot
@@ -75,7 +75,7 @@ if [[ -z "$booted_device" ]]; then
     -no-boot-anim
     -no-window
   )
-  if [[ "${BONSAI_ANDROID_WIPE_DATA:-0}" == "1" ]]; then
+  if [[ "${OCAML_DEMO_ANDROID_WIPE_DATA:-0}" == "1" ]]; then
     emulator_args+=(-wipe-data)
   fi
   "$emulator" "${emulator_args[@]}" > "$log_file" 2>&1 &
@@ -100,8 +100,8 @@ if [[ -z "$booted_device" || "$boot_completed" != "1" ]]; then
 fi
 
 "$adb" install -r "$apk"
-"$adb" shell am force-stop com.logseq.bonsaiandroid
-"$adb" shell am start -W -n com.logseq.bonsaiandroid/.MainActivity >/dev/null
+"$adb" shell am force-stop com.logseq.ocaml_demoandroid
+"$adb" shell am start -W -n com.logseq.ocaml_demoandroid/.MainActivity >/dev/null
 for _ in {1..20}; do
   sleep 2
   dump_ui "$before_xml"

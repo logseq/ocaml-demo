@@ -1,4 +1,4 @@
-module App = Bonsai_android.App
+module App = Ocaml_demo_android.App
 
 type renderer
 

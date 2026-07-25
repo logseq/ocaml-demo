@@ -1,10 +1,10 @@
 (test
- (name bonsai_apple_test)
+ (name ocaml_demo_apple_test)
  (deps
- ../swiftui/BonsaiNativeSwiftUI.swift
- ../swiftui/bonsai_apple_swiftui.ml
- ../swiftui/bonsai_apple_swiftui.mli
- ../swiftui/bonsai_apple_swiftui_stubs.c
+ ../swiftui/OCamlDemoSwiftUI.swift
+ ../swiftui/ocaml_demo_apple_swiftui.ml
+ ../swiftui/ocaml_demo_apple_swiftui.mli
+ ../swiftui/ocaml_demo_apple_swiftui_stubs.c
  ../swiftui/dune
  ../../scripts/bootstrap-ios-jane.sh)
- (libraries bonsai_apple))
+ (libraries ocaml_demo_apple))

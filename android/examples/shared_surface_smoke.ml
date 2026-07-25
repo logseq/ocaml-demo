@@ -19,7 +19,7 @@ let assert_contains json substring =
 ;;
 
 let () =
-  let open Bonsai_android in
+  let open Ocaml_demo_android in
   let node =
     navigation_stack
       [ list

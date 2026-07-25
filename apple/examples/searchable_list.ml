@@ -1,30 +1,27 @@
-module Apple = Bonsai_apple
+module Apple = Ocaml_demo_apple
+module Model = Ocaml_demo_model
 
-let all_items = [ "Today"; "Tasks"; "Settings"; "Archive"; "Projects" ]
-
-let contains_case_insensitive text ~substring =
-  let text = String.lowercase_ascii text in
-  let substring = String.lowercase_ascii substring in
-  let text_length = String.length text in
-  let substring_length = String.length substring in
-  let rec loop index =
-    substring_length = 0
-    || (index + substring_length <= text_length
-        && (String.sub text index substring_length = substring || loop (index + 1)))
-  in
-  loop 0
+let action model set_model action =
+  match Model.update model action with
+  | Ok model -> set_model model
+  | Error _ -> Apple.Action.ignore
 ;;
 
 let component graph =
-  let query, set_query = Apple.state graph ~key:"query" "" in
-  let items =
-    List.filter (fun item -> contains_case_insensitive item ~substring:query) all_items
-  in
+  let model, set_model = Apple.state graph ~key:"demo-model" Model.initial in
   Apple.vstack
     ~spacing:12.
-    [ (Apple.text_field ~text:query ~placeholder:"Search" ~on_change:set_query ()
+    [ (Apple.text_field
+         ~text:(Model.search_query model)
+         ~placeholder:"Search"
+         ~on_change:(fun query -> action model set_model (Model.Set_search_query query))
+         ()
        |> Apple.frame ~width:360. ~height:44.)
-    ; (Apple.list items ~key:(fun item -> item) ~row:Apple.text |> Apple.frame ~width:360. ~height:620.)
+    ; (Apple.list
+         (Model.search_results model)
+         ~key:(fun item -> item)
+         ~row:Apple.text
+       |> Apple.frame ~width:360. ~height:620.)
     ]
 ;;
 

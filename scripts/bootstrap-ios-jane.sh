@@ -20,15 +20,15 @@ Options:
   -h, --help           Show this help
 
 If no packages are provided, a dependency-ordered package list for the current
-bonsai-native iOS example is used.
+ocaml-demo iOS example is used.
 
 Run this after installing the host package dependencies with:
   DUNE_WORKSPACE=$PWD/dune-workspace.basement-flags opam install . --deps-only --with-test
 EOF
 }
 
-switch_name=${BONSAI_APPLE_IOS_SWITCH:-${BONSAI_NATIVE_IOS_SWITCH:-simulator-5.4.1}}
-workspace=${BONSAI_APPLE_IOS_WORKSPACE:-${BONSAI_NATIVE_IOS_WORKSPACE:-dune-workspace.basement-flags}}
+switch_name=${OCAML_DEMO_APPLE_IOS_SWITCH:-${OCAML_DEMO_IOS_SWITCH:-simulator-5.4.1}}
+workspace=${OCAML_DEMO_APPLE_IOS_WORKSPACE:-${OCAML_DEMO_IOS_WORKSPACE:-dune-workspace.basement-flags}}
 clean=false
 dry_run=false
 link_host_tools=true
@@ -184,8 +184,8 @@ default_packages=(
   bignum
   incr_map
   virtual_dom
-  bonsai_concrete
-  bonsai
+  ocaml_demo_concrete
+  ocaml_demo
 )
 
 if ((${#packages[@]} == 0)); then

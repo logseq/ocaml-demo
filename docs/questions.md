@@ -184,7 +184,7 @@ Cons:
 Recommendation:
 
 Keep this as an explicit escape hatch, not the normal path. Promote repeated
-escape-hatch usage into typed `bonsai_apple` primitives.
+escape-hatch usage into typed `ocaml_demo_apple` primitives.
 
 ## Proposed Direction
 

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "bonsai-native"
+rootProject.name = "ocaml-demo"
 include(":app")

@@ -1,10 +1,16 @@
-module Apple = Bonsai_apple
+module Apple = Ocaml_demo_apple
+module Model = Ocaml_demo_model
 
 let component graph =
-  let count, set_count = Apple.state graph ~key:"count" 0 in
+  let model, set_model = Apple.state graph ~key:"demo-model" Model.initial in
+  let increment =
+    match Model.update model Model.Increment with
+    | Ok model -> set_model model
+    | Error _ -> Apple.Action.ignore
+  in
   Apple.vstack
-    [ Apple.text (Int.to_string count)
-    ; Apple.button "Increment" ~on_click:(set_count (count + 1))
+    [ Apple.text (Model.count model |> Int.to_string)
+    ; Apple.button "Increment" ~on_click:increment
     ]
 ;;
 

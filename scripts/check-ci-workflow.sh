@@ -2,8 +2,8 @@
 set -euo pipefail
 
 repo_root="$(
-  if [[ -n "${BONSAI_NATIVE_REPO_ROOT:-}" ]]; then
-    printf '%s\n' "$BONSAI_NATIVE_REPO_ROOT"
+  if [[ -n "${OCAML_DEMO_REPO_ROOT:-}" ]]; then
+    printf '%s\n' "$OCAML_DEMO_REPO_ROOT"
   elif git_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
     printf '%s\n' "$git_root"
   else
@@ -13,7 +13,7 @@ repo_root="$(
 )"
 workflow="$repo_root/.github/workflows/ci.yml"
 dune_project="$repo_root/dune-project"
-bonsai_native_opam="$repo_root/bonsai_native.opam"
+ocaml_demo_native_opam="$repo_root/ocaml_demo_native.opam"
 
 require_contains() {
   local file="$1"
@@ -40,7 +40,7 @@ reject_contains() {
 require_contains \
   "$workflow" \
   "runs-on: macos-15-intel" \
-  "CI must run on a pinned macOS runner because bonsai_apple builds stubs that include dispatch/dispatch.h."
+  "CI must run on a pinned macOS runner because ocaml_demo_apple builds stubs that include dispatch/dispatch.h."
 
 reject_contains \
   "$workflow" \
@@ -68,6 +68,6 @@ require_contains \
   "dune-project must declare melange for libraries built in Melange mode."
 
 require_contains \
-  "$bonsai_native_opam" \
+  "$ocaml_demo_native_opam" \
   '"melange"' \
-  "bonsai_native.opam must declare melange so fresh opam builds provide melc."
+  "ocaml_demo_native.opam must declare melange so fresh opam builds provide melc."

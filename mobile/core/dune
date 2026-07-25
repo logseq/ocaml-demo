@@ -1,0 +1,14 @@
+(library
+ (name ocaml_demo_mobile_rpc)
+ (modules ocaml_demo_mobile_rpc)
+ (libraries ocaml_demo_model yojson))
+
+(executable
+ (name ocaml_demo_mobile_entry)
+ (modules ocaml_demo_mobile_entry)
+ (modes exe object shared_object)
+ (libraries ocaml_demo_mobile_rpc)
+ (foreign_stubs
+  (language c)
+  (names ocaml_demo_core_ffi))
+ (flags :standard -linkall))

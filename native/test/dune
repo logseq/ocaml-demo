@@ -1,9 +1,9 @@
 (executable
- (name bonsai_native_app_driver_test)
- (libraries bonsai_native))
+ (name ocaml_demo_native_app_driver_test)
+ (libraries ocaml_demo_native))
 
 (rule
  (alias runtest)
- (deps bonsai_native_app_driver_test.exe)
+ (deps ocaml_demo_native_app_driver_test.exe)
  (action
-  (run ./bonsai_native_app_driver_test.exe)))
+  (run ./ocaml_demo_native_app_driver_test.exe)))

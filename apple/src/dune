@@ -1,4 +1,4 @@
 (library
- (name bonsai_apple)
- (public_name bonsai_apple)
- (libraries bonsai_native))
+ (name ocaml_demo_apple)
+ (public_name ocaml_demo_apple)
+ (libraries ocaml_demo_native))

@@ -1,14 +1,14 @@
 # Apple Declarative Components
 
-`bonsai_apple` should grow as an Apple-native declarative UI layer, not as a
+`ocaml_demo_apple` should grow as an Apple-native declarative UI layer, not as a
 literal clone of SwiftUI's generic type system.
 
 The app authoring boundary stays in OCaml graph components:
 
 ```text
 OCaml graph component
-  -> Bonsai_apple.node tree
-  -> Bonsai_apple.Renderer
+  -> Ocaml_demo_apple.node tree
+  -> Ocaml_demo_apple.Renderer
   -> SwiftUI backend
   -> native Apple UI
 ```
@@ -18,7 +18,7 @@ normal app screens.
 
 ## Design Rules
 
-- Add product-level Apple primitives to `bonsai_apple`, not app-local backend
+- Add product-level Apple primitives to `ocaml_demo_apple`, not app-local backend
   hacks.
 - Keep primitive state explicit and graph-owned: selected tab, search text,
   picker value, toggle state, sheet visibility, and navigation selection should
@@ -31,7 +31,7 @@ normal app screens.
 
 ## Current Coverage
 
-`bonsai_apple` already covers:
+`ocaml_demo_apple` already covers:
 
 - Text, button, text field.
 - Vertical and horizontal stacks.
@@ -62,7 +62,7 @@ interfaces expose native APIs for the components below:
 - iOS 26 styling hooks: `GlassButtonStyle`, `ToolbarSpacer`,
   `backgroundExtensionEffect`, and `scrollEdgeEffectStyle`.
 
-These APIs are enough to grow `bonsai_apple` into a familiar Apple UI layer for
+These APIs are enough to grow `ocaml_demo_apple` into a familiar Apple UI layer for
 typical iPhone/iPad productivity apps.
 
 ## Recommended Primitive Layers
@@ -179,9 +179,9 @@ These should be modifiers because they present from existing content:
 These should live in optional modules/packages because they pull in extra Apple
 framework semantics:
 
-- `Bonsai_apple_photos.photos_picker`
-- `Bonsai_apple_map.map`
-- `Bonsai_apple_share.share_link`
+- `Ocaml_demo_apple_photos.photos_picker`
+- `Ocaml_demo_apple_map.map`
+- `Ocaml_demo_apple_share.share_link`
 - Camera, documents, StoreKit, Charts, and similar framework-specific views.
 
 ## Backend Implications
@@ -197,7 +197,7 @@ SwiftUI backend:
 
 ## Feasibility
 
-Yes, `bonsai_apple` can grow to support the Apple-native component set needed
+Yes, `ocaml_demo_apple` can grow to support the Apple-native component set needed
 for a polished app. The practical target is not "every SwiftUI symbol"; it is a
 stable, declarative OCaml API for common Apple UI patterns, backed by SwiftUI.
 

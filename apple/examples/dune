@@ -1,13 +1,13 @@
 (library
- (name bonsai_apple_examples)
+ (name ocaml_demo_apple_examples)
  (modules counter todo searchable_list navigation ios_demo_app)
- (libraries bonsai_apple))
+ (libraries ocaml_demo_apple ocaml_demo_model))
 
 (rule
- (targets BonsaiNativeSwiftUI.o)
+ (targets OCamlDemoSwiftUI.o)
  (deps
   ../../scripts/build-swiftui-renderer.sh
-  ../swiftui/BonsaiNativeSwiftUI.swift)
+  ../swiftui/OCamlDemoSwiftUI.swift)
  (enabled_if
   (or
    (= %{context_name} device.ios)
@@ -18,21 +18,21 @@
   (run /bin/sh ../../scripts/build-swiftui-renderer.sh %{targets})))
 
 (rule
- (targets BonsaiNativeSwiftUIMac.o)
+ (targets OCamlDemoSwiftUIMac.o)
  (deps
   ../../scripts/build-swiftui-renderer.sh
-  ../swiftui/BonsaiNativeSwiftUIMac.swift)
+  ../swiftui/OCamlDemoSwiftUIMac.swift)
  (enabled_if
   (= %{context_name} default))
  (action
   (run
    /bin/sh
    -c
-   "SWIFT_SOURCE=apple/swiftui/BonsaiNativeSwiftUIMac.swift SWIFT_SDK=macosx SWIFT_TARGET=${MACOS_TARGET:-$(uname -m)-apple-macosx14.0} /bin/sh ../../scripts/build-swiftui-renderer.sh BonsaiNativeSwiftUIMac.o")))
+   "SWIFT_SOURCE=apple/swiftui/OCamlDemoSwiftUIMac.swift SWIFT_SDK=macosx SWIFT_TARGET=${MACOS_TARGET:-$(uname -m)-apple-macosx14.0} /bin/sh ../../scripts/build-swiftui-renderer.sh OCamlDemoSwiftUIMac.o")))
 
 (rule
  (targets swiftui_link_flags.sexp)
- (deps BonsaiNativeSwiftUI.o)
+ (deps OCamlDemoSwiftUI.o)
  (enabled_if
   (or
    (= %{context_name} device.ios)
@@ -42,11 +42,11 @@
  (action
   (with-stdout-to
    %{targets}
-   (run /bin/sh -c "printf '(-ccopt \"%s\")' \"$PWD/BonsaiNativeSwiftUI.o\""))))
+   (run /bin/sh -c "printf '(-ccopt \"%s\")' \"$PWD/OCamlDemoSwiftUI.o\""))))
 
 (rule
  (targets swiftui_mac_link_flags.sexp)
- (deps BonsaiNativeSwiftUIMac.o)
+ (deps OCamlDemoSwiftUIMac.o)
  (enabled_if
   (= %{context_name} default))
  (action
@@ -55,12 +55,12 @@
    (run
     /bin/sh
     -c
-    "printf '(-ccopt \"%s\")' \"$PWD/BonsaiNativeSwiftUIMac.o\""))))
+    "printf '(-ccopt \"%s\")' \"$PWD/OCamlDemoSwiftUIMac.o\""))))
 
 (executable
  (name ios_app)
  (modules ios_app)
- (link_deps BonsaiNativeSwiftUI.o)
+ (link_deps OCamlDemoSwiftUI.o)
  (enabled_if
   (or
    (= %{context_name} device.ios)
@@ -100,15 +100,15 @@
   -ccopt
   "-framework Security")
  (libraries
-  bonsai_apple
-  bonsai_apple_swiftui
-  bonsai_apple_examples
+  ocaml_demo_apple
+  ocaml_demo_apple_swiftui
+  ocaml_demo_apple_examples
   threads.posix))
 
 (executable
  (name mac_app)
  (modules mac_app)
- (link_deps BonsaiNativeSwiftUIMac.o)
+ (link_deps OCamlDemoSwiftUIMac.o)
  (enabled_if
   (= %{context_name} default))
  (flags
@@ -125,9 +125,9 @@
   -ccopt
   "-framework UniformTypeIdentifiers")
  (libraries
-  bonsai_apple
-  bonsai_apple_swiftui
-  bonsai_apple_examples
+  ocaml_demo_apple
+  ocaml_demo_apple_swiftui
+  ocaml_demo_apple_examples
   threads.posix))
 
 (rule
@@ -145,14 +145,14 @@
    (run ../../scripts/ios-sdkroot-flags.sh))))
 
 (subdir
- BonsaiNativeCounter.app
+ OCamlDemoCounter.app
  (rule
   (alias default)
   (deps
    ../Info.plist
    ../ios_app.exe
    ../../../scripts/apple-codesign-identity.sh)
-  (targets Info.plist BonsaiNativeCounter)
+  (targets Info.plist OCamlDemoCounter)
   (enabled_if
    (or
     (= %{context_name} device.ios)
@@ -162,23 +162,23 @@
   (action
    (progn
     (copy ../Info.plist Info.plist)
-    (copy ../ios_app.exe BonsaiNativeCounter)
-    (run chmod u+w BonsaiNativeCounter)
-    (run strip -x BonsaiNativeCounter)
+    (copy ../ios_app.exe OCamlDemoCounter)
+    (run chmod u+w OCamlDemoCounter)
+    (run strip -x OCamlDemoCounter)
     (run
      /bin/sh
      -c
-     "codesign --force --sign \"$(%{dep:../../../scripts/apple-codesign-identity.sh})\" --timestamp=none BonsaiNativeCounter")))))
+     "codesign --force --sign \"$(%{dep:../../../scripts/apple-codesign-identity.sh})\" --timestamp=none OCamlDemoCounter")))))
 
 (subdir
- BonsaiNativeDemos.app
+ OCamlDemoDemos.app
  (rule
   (alias default)
   (deps
    ../Info.demos.plist
    ../ios_app.exe
    ../../../scripts/apple-codesign-identity.sh)
-  (targets Info.plist BonsaiNativeDemos)
+  (targets Info.plist OCamlDemoDemos)
   (enabled_if
    (or
     (= %{context_name} device.ios)
@@ -188,19 +188,19 @@
   (action
    (progn
     (copy ../Info.demos.plist Info.plist)
-    (copy ../ios_app.exe BonsaiNativeDemos)
-    (run chmod u+w BonsaiNativeDemos)
-    (run strip -x BonsaiNativeDemos)
+    (copy ../ios_app.exe OCamlDemoDemos)
+    (run chmod u+w OCamlDemoDemos)
+    (run strip -x OCamlDemoDemos)
     (run
      /bin/sh
      -c
-     "codesign --force --sign \"$(%{dep:../../../scripts/apple-codesign-identity.sh})\" --timestamp=none BonsaiNativeDemos")))))
+     "codesign --force --sign \"$(%{dep:../../../scripts/apple-codesign-identity.sh})\" --timestamp=none OCamlDemoDemos")))))
 
 (subdir
- BonsaiNativeMacDemos.app
+ OCamlDemoMacDemos.app
  (rule
   (alias default)
-  (deps Contents/Info.plist Contents/MacOS/BonsaiNativeMacDemos)
+  (deps Contents/Info.plist Contents/MacOS/OCamlDemoMacDemos)
   (enabled_if
    (= %{context_name} default))
   (action (progn)))
@@ -219,15 +219,15 @@
     (deps
      ../../../mac_app.exe
      ../../../../../scripts/apple-codesign-identity.sh)
-    (targets BonsaiNativeMacDemos)
+    (targets OCamlDemoMacDemos)
     (enabled_if
      (= %{context_name} default))
     (action
      (progn
-      (copy ../../../mac_app.exe BonsaiNativeMacDemos)
-      (run chmod u+w BonsaiNativeMacDemos)
-      (run strip -x BonsaiNativeMacDemos)
+      (copy ../../../mac_app.exe OCamlDemoMacDemos)
+      (run chmod u+w OCamlDemoMacDemos)
+      (run strip -x OCamlDemoMacDemos)
       (run
        /bin/sh
        -c
-       "codesign --force --sign \"$(%{dep:../../../../../scripts/apple-codesign-identity.sh})\" --timestamp=none BonsaiNativeMacDemos")))))))
+       "codesign --force --sign \"$(%{dep:../../../../../scripts/apple-codesign-identity.sh})\" --timestamp=none OCamlDemoMacDemos")))))))

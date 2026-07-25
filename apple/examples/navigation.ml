@@ -1,4 +1,4 @@
-module Apple = Bonsai_apple
+module Apple = Ocaml_demo_apple
 
 let component _graph =
   Apple.navigation_stack

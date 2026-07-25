@@ -4,10 +4,10 @@ set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 android_home=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}
-android_abi=${BONSAI_ANDROID_ABI:-arm64-v8a}
-dune_target=${BONSAI_ANDROID_DUNE_TARGET:-android}
-opam_switch=${BONSAI_ANDROID_OPAM_SWITCH:-${BONSAI_NATIVE_OPAM_SWITCH:-$repo_root}}
-native_lib_name=libbonsai_android_counter.so
+android_abi=${OCAML_DEMO_ANDROID_ABI:-arm64-v8a}
+dune_target=${OCAML_DEMO_ANDROID_DUNE_TARGET:-android}
+opam_switch=${OCAML_DEMO_ANDROID_OPAM_SWITCH:-${OCAML_DEMO_OPAM_SWITCH:-$repo_root}}
+native_lib_name=libocaml_demo_android_counter.so
 out_dir="$repo_root/android/_build/android/jniLibs/$android_abi"
 artifact="$repo_root/_build/default.$dune_target/android/examples/android_counter_entry.so"
 

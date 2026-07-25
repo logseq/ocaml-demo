@@ -1,0 +1,3 @@
+# Skip configuration for shared renderer tests.
+skip:
+  mode: 'transpiled'

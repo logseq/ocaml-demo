@@ -1,4 +1,4 @@
 (library
- (name bonsai_native)
- (public_name bonsai_native)
+ (name ocaml_demo_native)
+ (public_name ocaml_demo_native)
  (modes :standard melange))

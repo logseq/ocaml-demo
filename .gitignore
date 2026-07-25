@@ -25,5 +25,12 @@ android/build/
 android/app/build/
 android/local.properties
 
+mobile/.build/
+mobile/.swiftpm/
+mobile/Android/.gradle/
+mobile/Android/build/
+mobile/Android/app/build/
+mobile/Android/local.properties
+
 web/demo/dist/
 web/demo/node_modules/

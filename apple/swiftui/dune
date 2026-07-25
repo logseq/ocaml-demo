@@ -1,6 +1,6 @@
 (library
- (name bonsai_apple_swiftui)
- (public_name bonsai_apple.swiftui)
+ (name ocaml_demo_apple_swiftui)
+ (public_name ocaml_demo_apple.swiftui)
  (enabled_if
   (or
    (= %{context_name} default)
@@ -12,14 +12,14 @@
    (= %{context_name} catalyst.ios)))
  (foreign_stubs
   (language c)
-  (names bonsai_apple_swiftui_stubs))
+  (names ocaml_demo_apple_swiftui_stubs))
  (c_library_flags
   (:standard -framework Foundation -framework SwiftUI))
- (libraries bonsai_apple))
+ (libraries ocaml_demo_apple))
 
 (install
  (section lib)
- (package bonsai_apple)
+ (package ocaml_demo_apple)
  (files
-  (BonsaiNativeSwiftUI.swift as swiftui/BonsaiNativeSwiftUI.swift)
-  (BonsaiNativeSwiftUIMac.swift as swiftui/BonsaiNativeSwiftUIMac.swift)))
+  (OCamlDemoSwiftUI.swift as swiftui/OCamlDemoSwiftUI.swift)
+  (OCamlDemoSwiftUIMac.swift as swiftui/OCamlDemoSwiftUIMac.swift)))

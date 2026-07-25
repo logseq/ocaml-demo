@@ -4,14 +4,16 @@
 <dict>
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
+  <key>CFBundleDisplayName</key>
+  <string>OCaml Demo</string>
   <key>CFBundleExecutable</key>
-  <string>BonsaiNativeMacDemos</string>
+  <string>OCamlDemoMacDemos</string>
   <key>CFBundleIdentifier</key>
-  <string>com.logseq.bonsai-native.mac-demos</string>
+  <string>com.logseq.ocamldemo.mac</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>BonsaiNativeMacDemos</string>
+  <string>OCaml Demo</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

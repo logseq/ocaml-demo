@@ -1,9 +1,9 @@
-# bonsai-native Apple examples
+# ocaml-demo Apple examples
 
 These files are component examples.  They intentionally define graph components
-that return `Bonsai_apple.node`; the SwiftUI app delegate is responsible for
+that return `Ocaml_demo_apple.node`; the SwiftUI app delegate is responsible for
 instantiating an Apple backend and mounting the component with
-`Bonsai_apple.App.Make`.
+`Ocaml_demo_apple.App.Make`.
 
 Examples:
 

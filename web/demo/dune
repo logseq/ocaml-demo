@@ -5,7 +5,7 @@
  (modules main)
  (preprocess
   (pps melange.ppx))
- (libraries bonsai_android bonsai_android_examples)
+ (libraries ocaml_demo_android ocaml_demo_android_examples)
  (runtime_deps react_runtime.js)
  (promote (until-clean))
 (enabled_if

@@ -3,12 +3,14 @@
  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <key>CFBundleDisplayName</key>
+  <string>OCaml Demo</string>
   <key>CFBundleExecutable</key>
-  <string>BonsaiNativeCounter</string>
+  <string>OCamlDemoCounter</string>
   <key>CFBundleIdentifier</key>
-  <string>com.logseq.bonsai-native.counter</string>
+  <string>com.logseq.ocamldemo.counter</string>
   <key>CFBundleName</key>
-  <string>BonsaiNativeCounter</string>
+  <string>OCaml Demo</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

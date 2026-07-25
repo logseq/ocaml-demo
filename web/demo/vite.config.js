@@ -8,8 +8,8 @@ const generatedNodeModules = path.join(root, "dist", "node_modules");
 export default defineConfig({
   resolve: {
     alias: {
-      bonsai_android: path.join(generatedNodeModules, "bonsai_android"),
-      bonsai_native: path.join(generatedNodeModules, "bonsai_native"),
+      ocaml_demo_android: path.join(generatedNodeModules, "ocaml_demo_android"),
+      ocaml_demo_native: path.join(generatedNodeModules, "ocaml_demo_native"),
       melange: path.join(generatedNodeModules, "melange"),
       "melange.js": path.join(generatedNodeModules, "melange.js"),
     },

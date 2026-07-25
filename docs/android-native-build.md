@@ -1,9 +1,13 @@
 # Android Native Build
 
+> Legacy UI-tree build path. The current mobile architecture uses Skip Lite
+> SwiftUI/Compose with the single `ocaml_demo_call` API. Cross-compiling and
+> packaging `libocaml_demo_core.so` for that app is currently deferred.
+
 The Android demo loads:
 
 ```text
-android/_build/android/jniLibs/arm64-v8a/libbonsai_android_counter.so
+android/_build/android/jniLibs/arm64-v8a/libocaml_demo_android_counter.so
 ```
 
 That shared library contains:
@@ -11,7 +15,7 @@ That shared library contains:
 - the OCaml runtime
 - the local OCaml graph runtime built for Android
 - the OCaml Android demo entrypoint
-- JNI functions from `android/jni/bonsai_android_jni.c`
+- JNI functions from `android/jni/ocaml_demo_android_jni.c`
 
 ## Cross Compiler
 
@@ -29,7 +33,7 @@ The branch installs Android PIC runtime aliases needed by `ocamlopt -shared`.
 Create or reuse an OCaml 5.2.1 switch for this repository:
 
 ```sh
-cd ~/Codes/projects/bonsai-native
+cd ~/Codes/projects/ocaml-demo
 opam switch create . 5.2.1
 eval "$(opam env)"
 opam repo add android-local file://$HOME/Codes/projects/opam-cross-android --this-switch
@@ -70,7 +74,7 @@ and copies the result to Gradle's `jniLibs` input.
 To use a non-local switch:
 
 ```sh
-BONSAI_NATIVE_OPAM_SWITCH=/path/to/switch scripts/build-android-native.sh
+OCAML_DEMO_OPAM_SWITCH=/path/to/switch scripts/build-android-native.sh
 ```
 
 ## Build And Run The APK
@@ -83,7 +87,7 @@ rtk proxy ./gradlew :app:assembleDebug
 Confirm the APK contains the native library:
 
 ```sh
-unzip -l app/build/outputs/apk/debug/app-debug.apk | rg libbonsai_android_counter
+unzip -l app/build/outputs/apk/debug/app-debug.apk | rg libocaml_demo_android_counter
 ```
 
 Run the emulator smoke test:

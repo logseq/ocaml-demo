@@ -1,120 +1,85 @@
-# bonsai-native
+# ocaml-demo
 
-`bonsai-native` is an OCaml native UI experiment for sharing state and actions
-across iOS, macOS, and Android while leaving rendering to each platform UI.
+`ocaml-demo` shares application state and business actions in OCaml while
+keeping the UI native on every platform.
 
-The app UI is authored in OCaml. Platform code is only the renderer bridge:
+The iOS and Android application is named **OCaml Demo**.
 
 ```text
-OCaml graph component
-  -> bonsai_native node tree
-  -> platform renderer + event table
-  -> Android JNI / Apple SwiftUI bridge
-  -> Jetpack Compose / SwiftUI
-  -> native app UI
+SwiftUI source
+  -> iOS SwiftUI
+  -> Skip Lite -> Android Kotlin / Compose
+  -> one JSON RPC -> shared OCaml reducer
+
+Web / Desktop
+  -> direct calls -> shared OCaml reducer
 ```
 
-This is not a WebView and not a SwiftUI wrapper.
+The mobile boundary intentionally exposes one C function:
 
-## Packages
-
-- `bonsai_native`: shared OCaml graph state runtime, node DSL, JSON/event bridge,
-  and app driver.
-- `bonsai_android`: Android facade over `bonsai_native`; rendered by Kotlin
-  Compose through JNI.
-- `bonsai_apple`: iOS/macOS-facing API and renderer abstractions; SwiftUI is the
-  maintained Apple backend.
-
-Backend package names intentionally remain explicit. Existing Android code can
-continue to open `Bonsai_android`, and iOS code can continue to open
-`Bonsai_apple`.
-
-## OCaml UI Example
-
-```ocaml
-let component graph =
-  let count, set_count = Bonsai_android.state graph ~key:"count" 0 in
-  Bonsai_android.vstack
-    [ Bonsai_android.text (string_of_int count)
-    ; Bonsai_android.button "Increment" ~on_click:(set_count (count + 1))
-    ]
+```c
+const char *ocaml_demo_call(const char *request_json);
 ```
 
-On Android, Compose receives a native node tree JSON payload and sends event ids
-back to OCaml through JNI. OCaml owns the graph driver and event table, so state
-updates stay shared above the platform renderer.
+OCaml decodes the request, dispatches the typed action, and returns the updated
+screen snapshot. UI structure and widget state do not cross the FFI boundary.
+
+## Shared Logic
+
+`examples/shared/ocaml_demo_model.ml` is the source of truth for the current
+Counter, Todo, and Search examples. The model is a pure OCaml reducer and is
+used by:
+
+- iOS through the mobile JSON/C ABI adapter.
+- Android's generated Compose UI through the same JSON API once the Android
+  OCaml native library is packaged.
+- Web and Desktop directly, without serializing through JSON.
+- The existing Apple and Android example adapters.
+
+The older OCaml UI-tree packages remain in the repository for compatibility
+and experimentation, but they are no longer the application architecture.
 
 ## Repository Layout
 
-- `native/`: shared `bonsai_native` implementation.
+- `examples/shared/`: platform-neutral OCaml model, actions, and tests.
+- `mobile/`: Skip Lite SwiftUI app, the single mobile RPC, generated Android
+  app shell, and iOS launcher.
+- `native/`: shared `ocaml_demo_native` implementation.
 - `src/`: Android OCaml facade.
-- `android/`: Gradle/Compose demo app.
+- `android/`: legacy Gradle/Compose demo app.
 - `android/examples/`: Android demo components, native entrypoint, and asset
   export helpers.
 - `android/jni/`: Android JNI bridge into OCaml.
 - `apple/`: Apple OCaml package, SwiftUI backend, and iOS/macOS examples.
-- `web/demo/`: browser demo for the shared Android demo components.
+- `web/demo/`: browser demo backed by the shared OCaml model.
 - `scripts/`: Android and iOS bootstrap/build helpers.
 - `docs/`: architecture and platform build notes.
 
-## Android Quick Check
-
-Use a switch with the Android cross compiler and Jane preview packages. The
-current working path is documented in
-[docs/android-native-build.md](docs/android-native-build.md).
+## Checks
 
 ```sh
-export BONSAI_NATIVE_OPAM_SWITCH=/path/to/your/ocaml-android-switch
-
-scripts/build-android-native.sh
-cd android
-rtk proxy ./gradlew :app:assembleDebug
+opam exec -- dune build @shared-platform-check
+cd mobile && swift test --disable-keychain
 ```
 
-The debug APK should contain:
-
-```text
-lib/arm64-v8a/libbonsai_android_counter.so
-```
-
-Run the emulator smoke test:
+Build the iOS Simulator app:
 
 ```sh
-scripts/test-android-emulator.sh
-```
-
-It installs the APK, launches the counter, taps `Increment`, and verifies the UI
-changes from `0` to `1`. It also switches through the Android `Todo` and
-`Search` tabs, which mirror the current iOS demo tabs.
-
-## iOS Quick Check
-
-The iOS package is under `apple/` and builds through opam-cross-ios contexts.
-See [docs/apple-native-build.md](docs/apple-native-build.md).
-
-The simulator app target is:
-
-```sh
-opam exec -- dune build apple/examples/BonsaiNativeDemos.app \
-  --workspace dune-workspace.simulator
+scripts/build-mobile-ios-simulator.sh
 ```
 
 ## Status
 
 Working now:
 
-- Shared OCaml DSL for text, button, text fields, stacks, scroll views, keyed
-  lists, navigation stacks, images, custom views, and common modifiers.
-- Android JNI native library built with OCaml 5.2.1 and the local graph runtime.
-- Android Compose renderer loads real native OCaml state and dispatches clicks
-  back into OCaml.
-- Android and iOS demo apps expose the same `Counter`, `Todo`, and `Search`
-  OCaml views.
-- Apple source/backend scaffolding is included in the same repo.
+- One shared OCaml reducer for Counter, Todo, and Search.
+- One mobile JSON RPC and C ABI entry point.
+- One SwiftUI source transpiled by Skip Lite to Kotlin/Compose.
+- End-to-end iOS Simulator flow from SwiftUI through C ABI to OCaml.
+- Web and Desktop adapters reuse the same reducer.
 
-Still early:
+Deferred:
 
-- Android release-size optimization.
-- More complete iOS packaging automation.
-- AppKit backend.
-- Shared persistence/sync packages above the UI layer.
+- Building and packaging the OCaml native library for Android. The generated
+  Compose app shell builds, but it must not be launched without
+  `libocaml_demo_core.so`.
