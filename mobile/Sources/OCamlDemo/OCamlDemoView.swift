@@ -9,38 +9,276 @@ public struct OCamlDemoView: View {
     }
 
     public var body: some View {
-        TabView(selection: $selectedScreen) {
-            NavigationStack {
-                CounterScreen(store: store)
-                    .navigationTitle("Counter")
-            }
-            .tabItem {
-                Text("Counter")
-                    .accessibilityIdentifier("tab.counter")
-            }
-            .tag(OCamlDemoScreen.counter)
+        SidebarContainerView(store: store, selectedScreen: $selectedScreen)
+            #if !SKIP
+            .ignoresSafeArea()
+            #endif
+    }
+}
 
-            NavigationStack {
-                TodoScreen(store: store)
-                    .navigationTitle("Todo")
-            }
-            .tabItem {
-                Text("Todo")
-                    .accessibilityIdentifier("tab.todo")
-            }
-            .tag(OCamlDemoScreen.todo)
+struct SidebarContent: View {
+    let selectedScreen: OCamlDemoScreen
+    let selectScreen: (OCamlDemoScreen) -> Void
 
-            NavigationStack {
-                SearchScreen(store: store)
-                    .navigationTitle("Search")
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("OCaml Demo")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .padding(.bottom, 20)
+
+            SidebarLink(
+                title: "Counter",
+                identifier: "link.sidebar.counter",
+                isSelected: selectedScreen == .counter
+            ) {
+                selectScreen(.counter)
             }
-            .tabItem {
-                Text("Search")
-                    .accessibilityIdentifier("tab.search")
+
+            SidebarLink(
+                title: "Todos",
+                identifier: "link.sidebar.todo",
+                isSelected: selectedScreen == .todo
+            ) {
+                selectScreen(.todo)
             }
-            .tag(OCamlDemoScreen.search)
+
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+        #if !SKIP
+        .safeAreaPadding(.top)
+        #endif
+        .padding(.top, 32)
+    }
+}
+
+private struct SidebarLink: View {
+    let title: String
+    let identifier: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .font(.title3)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
+    }
+}
+
+struct ScreenContent: View {
+    let screen: OCamlDemoScreen
+    let store: OCamlDemoStore
+
+    @ViewBuilder var body: some View {
+        switch screen {
+        case .counter:
+            CounterScreen(store: store)
+        case .todo:
+            TodoScreen(store: store)
+        case .search:
+            EmptyView()
         }
     }
+}
+
+private struct SidebarMainPage: View {
+    let store: OCamlDemoStore
+    @Binding var selectedScreen: OCamlDemoScreen
+    @Binding var isSidebarPresented: Bool
+
+    var body: some View {
+        NavigationStack {
+            ScreenContent(screen: selectedScreen, store: store)
+                .navigationTitle(selectedScreen == .counter ? "Counter" : "Todos")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            isSidebarPresented.toggle()
+                        } label: {
+                            SidebarMenuIcon()
+                        }
+                        .accessibilityLabel("Open sidebar")
+                        .accessibilityIdentifier("button.sidebar")
+                    }
+                }
+        }
+        .overlay {
+            if isSidebarPresented {
+                Button {
+                    isSidebarPresented = false
+                } label: {
+                    Color.black.opacity(0.001)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close sidebar")
+                .accessibilityIdentifier("button.sidebar.dismiss")
+            }
+        }
+    }
+}
+
+private struct SidebarMenuIcon: View {
+    var body: some View {
+        VStack(spacing: 4) {
+            Capsule()
+                .frame(width: 20, height: 2)
+            Capsule()
+                .frame(width: 20, height: 2)
+            Capsule()
+                .frame(width: 20, height: 2)
+        }
+        .frame(width: 24, height: 24)
+        .foregroundStyle(.primary)
+    }
+}
+
+private struct SidebarContainerView: View {
+    let store: OCamlDemoStore
+    @Binding var selectedScreen: OCamlDemoScreen
+    @State private var isSidebarPresented = false
+    #if SKIP
+    @State private var dragOffset: CGFloat = 0
+    #else
+    @GestureState private var dragOffset: CGFloat = 0
+    #endif
+
+    var body: some View {
+        GeometryReader { geometry in
+            let zero: CGFloat = 0.0
+            let maximumSidebarWidth: CGFloat = 360
+            let proposedSidebarWidth: CGFloat = geometry.size.width * 0.84
+            let sidebarWidth: CGFloat =
+                proposedSidebarWidth < maximumSidebarWidth
+                ? proposedSidebarWidth : maximumSidebarWidth
+            let baseOffset: CGFloat =
+                isSidebarPresented ? sidebarWidth : zero
+            let proposedContentOffset: CGFloat = baseOffset + dragOffset
+            let lowerBoundedOffset: CGFloat =
+                proposedContentOffset > zero ? proposedContentOffset : zero
+            let contentOffset: CGFloat =
+                lowerBoundedOffset < sidebarWidth
+                ? lowerBoundedOffset : sidebarWidth
+            let progress: CGFloat =
+                sidebarWidth > zero ? contentOffset / sidebarWidth : zero
+
+            ZStack(alignment: .leading) {
+                SidebarContent(
+                    selectedScreen: selectedScreen,
+                    selectScreen: { screen in
+                        selectedScreen = screen
+                        isSidebarPresented = false
+                    }
+                )
+                .frame(width: sidebarWidth)
+                .background(Color.black.opacity(0.001))
+                .opacity(0.35 + (0.65 * progress))
+                .scaleEffect(0.96 + (0.04 * progress))
+                .offset(x: -20 * (1 - progress), y: 0)
+                #if SKIP
+                .simultaneousGesture(
+                    sidebarDragGesture(
+                        baseOffset: baseOffset,
+                        sidebarWidth: sidebarWidth
+                    )
+                )
+                #else
+                .highPriorityGesture(
+                    sidebarDragGesture(
+                        baseOffset: baseOffset,
+                        sidebarWidth: sidebarWidth
+                    )
+                )
+                #endif
+
+                SidebarMainPage(
+                    store: store,
+                    selectedScreen: $selectedScreen,
+                    isSidebarPresented: $isSidebarPresented
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 40 * progress))
+                .shadow(
+                    color: Color.black.opacity(0.18),
+                    radius: 16,
+                    x: -6,
+                    y: 0
+                )
+                .offset(x: contentOffset, y: 0)
+            }
+            #if SKIP
+            .simultaneousGesture(
+                sidebarDragGesture(
+                    baseOffset: baseOffset,
+                    sidebarWidth: sidebarWidth
+                )
+            )
+            #else
+            .highPriorityGesture(
+                sidebarDragGesture(
+                    baseOffset: baseOffset,
+                    sidebarWidth: sidebarWidth
+                )
+            )
+            #endif
+            .animation(
+                .spring(response: 0.28, dampingFraction: 0.9),
+                value: isSidebarPresented
+            )
+            .sensoryFeedback(
+                .impact(weight: .light),
+                trigger: isSidebarPresented
+            )
+        }
+    }
+
+    #if SKIP
+    private func sidebarDragGesture(
+        baseOffset: CGFloat,
+        sidebarWidth: CGFloat
+    ) -> some Gesture {
+        DragGesture(minimumDistance: 3)
+            .onChanged { value in
+                if abs(value.translation.width) > abs(value.translation.height) {
+                    dragOffset = value.translation.width
+                }
+            }
+            .onEnded { value in
+                let projectedOffset =
+                    baseOffset + value.predictedEndTranslation.width
+                isSidebarPresented = projectedOffset > sidebarWidth * 0.5
+                dragOffset = 0
+            }
+    }
+    #else
+    private func sidebarDragGesture(
+        baseOffset: CGFloat,
+        sidebarWidth: CGFloat
+    ) -> some Gesture {
+        DragGesture(minimumDistance: 3, coordinateSpace: .global)
+            .updating($dragOffset) { value, state, transaction in
+                if abs(value.translation.width) > abs(value.translation.height) {
+                    transaction.animation = nil
+                    state = value.translation.width
+                }
+            }
+            .onEnded { value in
+                let projectedOffset =
+                    baseOffset + value.predictedEndTranslation.width
+                isSidebarPresented = projectedOffset > sidebarWidth * 0.5
+            }
+    }
+    #endif
 }
 
 private struct CounterScreen: View {
@@ -132,43 +370,6 @@ private struct TodoScreen: View {
         }
         .task {
             store.load(.todo)
-        }
-    }
-}
-
-private struct SearchScreen: View {
-    let store: OCamlDemoStore
-
-    var body: some View {
-        VStack(spacing: 12) {
-            CoreErrorView(error: store.lastError)
-            TextField(
-                "Search",
-                text: Binding(
-                    get: {
-                        store.snapshot?.screen == .search
-                            ? store.snapshot?.query ?? ""
-                            : ""
-                    },
-                    set: { query in
-                        store.dispatch(
-                            screen: .search,
-                            action: "setQuery",
-                            payload: query
-                        )
-                    }
-                )
-            )
-            .accessibilityIdentifier("field.search.query")
-            .padding(.horizontal)
-
-            List(store.snapshot?.screen == .search ? store.snapshot?.results ?? [] : [], id: \.self) {
-                result in
-                Text(result)
-            }
-        }
-        .task {
-            store.load(.search)
         }
     }
 }
