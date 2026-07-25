@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-repository_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+repository_root=$(git rev-parse --show-toplevel)
 expected_repository_name="ocaml-demo"
 legacy_name="bon""sai"
 failure=0
@@ -15,7 +15,8 @@ fi
 while IFS= read -r path; do
   [[ -e "$repository_root/$path" ]] || continue
 
-  if [[ "${path,,}" == *"$legacy_name"* ]]; then
+  lower_path=$(printf '%s\n' "$path" | tr '[:upper:]' '[:lower:]')
+  if [[ "$lower_path" == *"$legacy_name"* ]]; then
     echo "Legacy name remains in path: $path" >&2
     failure=1
   fi
@@ -38,10 +39,11 @@ require_text() {
 }
 
 require_text "mobile/Darwin/Info.plist" "<string>OCaml Demo</string>"
-require_text "apple/examples/Info.mac.plist" "<string>OCaml Demo</string>"
+require_text "mobile/Darwin/Info.macos.plist" "<string>OCaml Demo</string>"
 require_text "mobile/Android/app/src/main/AndroidManifest.xml" 'android:label="OCaml Demo"'
 require_text "dune-project" "(name ocaml_demo)"
 require_text "mobile/Package.swift" 'name: "ocaml-demo-mobile"'
-require_text "android/settings.gradle.kts" 'rootProject.name = "ocaml-demo"'
+require_text "mobile/Android/settings.gradle.kts" 'rootProject.name = "ocaml.demo"'
+require_text "web/demo/main.ml" "module Model = Ocaml_demo_model"
 
 exit "$failure"

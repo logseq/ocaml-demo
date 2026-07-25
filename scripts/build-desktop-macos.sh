@@ -4,23 +4,25 @@ set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 mobile_root="$repo_root/mobile"
-ocaml_version=${OCAML_DEMO_IOS_OCAML_VERSION:-5.5.0}
-deployment_target=${OCAML_DEMO_IOS_DEPLOYMENT_TARGET:-17.0}
-sdk_path=$(xcrun --sdk iphonesimulator --show-sdk-path)
-triple="arm64-apple-ios${deployment_target}-simulator"
-swift_build_dir="$mobile_root/.build/arm64-apple-ios-simulator/debug"
-target_prefix="$repo_root/_build/ios-toolchain/$triple-$ocaml_version"
-core_build_dir="$repo_root/_build/ios-core/simulator"
+arch=$(uname -m)
+target="$arch-apple-macosx14.0"
+sdk_path=$(xcrun --sdk macosx --show-sdk-path)
+swift_build_dir="$mobile_root/.build/$arch-apple-macosx/debug"
+core_build_dir="$repo_root/_build/macos-core/$arch"
 core_object="$core_build_dir/ocaml_demo_runtime.o"
 ffi_object="$core_build_dir/ocaml_demo_core_ffi.o"
-app_dir="$mobile_root/.build/OCamlDemo.app"
-frameworks_dir="$app_dir/Frameworks"
+app_dir="$mobile_root/.build/OCamlDemoMac.app"
+contents_dir="$app_dir/Contents"
+frameworks_dir="$contents_dir/Frameworks"
+macos_dir="$contents_dir/MacOS"
 
-"$repo_root/scripts/bootstrap-ios-ocaml.sh" >/dev/null
-
-ocamlopt="$target_prefix/bin/ocamlopt.opt"
-ocaml_lib="$target_prefix/lib/ocaml"
-clang=$(xcrun --sdk iphonesimulator --find clang)
+if [[ -n ${OCAML_DEMO_HOST_OCAMLOPT:-} ]]; then
+  ocamlopt=$OCAML_DEMO_HOST_OCAMLOPT
+else
+  ocamlopt="$(opam var bin)/ocamlopt.opt"
+fi
+ocaml_lib=$("$ocamlopt" -where)
+clang=$(xcrun --sdk macosx --find clang)
 
 mkdir -p "$core_build_dir"
 cd "$core_build_dir"
@@ -42,6 +44,7 @@ cd "$core_build_dir"
 
 "$ocamlopt" \
   -I . \
+  -runtime-variant _pic \
   -output-complete-obj \
   -linkall \
   -o "$core_object" \
@@ -51,7 +54,7 @@ cd "$core_build_dir"
   ocaml_demo_mobile_entry.cmx
 
 "$clang" \
-  -target "$triple" \
+  -target "$target" \
   -isysroot "$sdk_path" \
   -fPIC \
   -I "$ocaml_lib" \
@@ -61,25 +64,31 @@ cd "$core_build_dir"
 swift build \
   --disable-keychain \
   --package-path "$mobile_root" \
-  --triple "$triple" \
+  --triple "$target" \
   --sdk "$sdk_path" \
   -Xswiftc -DOCAML_DEMO_CORE \
   -Xlinker "$core_object" \
   -Xlinker "$ffi_object"
 
-mkdir -p "$frameworks_dir"
-cp "$mobile_root/Darwin/Info.plist" "$app_dir/Info.plist"
+rm -rf "$app_dir"
+mkdir -p "$frameworks_dir" "$macos_dir"
+cp "$mobile_root/Darwin/Info.macos.plist" "$contents_dir/Info.plist"
 cp "$swift_build_dir/libOCamlDemo.dylib" "$frameworks_dir/libOCamlDemo.dylib"
 
 for bundle in "$swift_build_dir"/*.bundle; do
-  [[ -d "$bundle" ]] || continue
+  [[ -d $bundle ]] || continue
+  case "$(basename "$bundle")" in
+    *Tests.bundle|skip-unit_*.bundle)
+      continue
+      ;;
+  esac
   cp -R "$bundle" "$app_dir/"
 done
 
-xcrun --sdk iphonesimulator swiftc \
+xcrun --sdk macosx swiftc \
   -parse-as-library \
   -module-name OCamlDemoShell \
-  -target "$triple" \
+  -target "$target" \
   -sdk "$sdk_path" \
   -I "$swift_build_dir/Modules" \
   -Xcc "-fmodule-map-file=$swift_build_dir/OCamlCoreABI.build/module.modulemap" \
@@ -87,13 +96,9 @@ xcrun --sdk iphonesimulator swiftc \
   -L "$swift_build_dir" \
   -lOCamlDemo \
   -framework SwiftUI \
-  -framework UIKit \
   -Xlinker -rpath \
-  -Xlinker @executable_path/Frameworks \
+  -Xlinker @executable_path/../Frameworks \
   "$mobile_root/Darwin/Sources/Main.swift" \
-  -o "$app_dir/OCamlDemo"
-
-codesign --force --sign - --timestamp=none "$frameworks_dir/libOCamlDemo.dylib"
-codesign --force --sign - --timestamp=none "$app_dir"
+  -o "$macos_dir/OCamlDemo"
 
 echo "$app_dir"

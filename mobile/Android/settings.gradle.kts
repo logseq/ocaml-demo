@@ -1,3 +1,5 @@
+rootProject.name = "ocaml.demo"
+
 pluginManagement {
     val pluginPath = File.createTempFile("skip-plugin-path", ".tmp")
     val skipPluginResult = providers.exec {

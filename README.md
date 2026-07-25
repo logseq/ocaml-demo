@@ -1,81 +1,58 @@
 # ocaml-demo
 
-`ocaml-demo` shares application state and business actions in OCaml while
-keeping the UI native on every platform.
-
-The iOS and Android application is named **OCaml Demo**.
+`ocaml-demo` keeps all Counter, Todo, and Search state transitions in one OCaml
+model while each platform owns only its UI.
 
 ```text
-SwiftUI source
-  -> iOS SwiftUI
-  -> Skip Lite -> Android Kotlin / Compose
-  -> one JSON RPC -> shared OCaml reducer
-
-Web / Desktop
-  -> direct calls -> shared OCaml reducer
+examples/shared/ocaml_demo_model.ml
+                 |
+       +---------+---------+
+       |                   |
+ shared JSON RPC       direct typed calls
+       |                   |
+ iOS / Android /       Web: OCaml + Melange
+ macOS SwiftUI              + React
 ```
 
-The mobile boundary intentionally exposes one C function:
+The native apps expose one C function:
 
 ```c
 const char *ocaml_demo_call(const char *request_json);
 ```
 
-OCaml decodes the request, dispatches the typed action, and returns the updated
-screen snapshot. UI structure and widget state do not cross the FFI boundary.
-
-## Shared Logic
-
-`examples/shared/ocaml_demo_model.ml` is the source of truth for the current
-Counter, Todo, and Search examples. The model is a pure OCaml reducer and is
-used by:
-
-- iOS through the mobile JSON/C ABI adapter.
-- Android's generated Compose UI through the same JSON API.
-- Web and Desktop directly, without serializing through JSON.
-- The existing Apple and Android example adapters.
-
-The older OCaml UI-tree packages remain in the repository for compatibility
-and experimentation, but they are no longer the application architecture.
+iOS and macOS compile the SwiftUI source natively. Skip Lite transpiles the same
+SwiftUI source to Kotlin/Compose for Android. Web UI and event handling are
+written in OCaml and compiled to React calls by Melange.
 
 ## Repository Layout
 
-- `examples/shared/`: platform-neutral OCaml model, actions, and tests.
-- `mobile/`: Skip Lite SwiftUI app, the single mobile RPC, generated Android
-  app shell, and iOS launcher.
-- `native/`: shared `ocaml_demo_native` implementation.
-- `src/`: Android OCaml facade.
-- `android/`: legacy Gradle/Compose demo app.
-- `android/examples/`: Android demo components, native entrypoint, and asset
-  export helpers.
-- `android/jni/`: Android JNI bridge into OCaml.
-- `apple/`: Apple OCaml package, SwiftUI backend, and iOS/macOS examples.
-- `web/demo/`: browser demo backed by the shared OCaml model.
-- `scripts/`: Android and iOS bootstrap/build helpers.
-- `docs/`: architecture and platform build notes.
+- `examples/shared/`: the only business model, shared JSON implementation, RPC,
+  and OCaml tests.
+- `mobile/`: one SwiftUI source for iOS, Android, and macOS plus the C ABI.
+- `web/demo/`: OCaml React UI compiled by Melange.
+- `scripts/`: OCaml 5.5 cross-toolchain, native app, and architecture checks.
+- `docs/`: current architecture and platform build instructions.
+
+The former platform-specific OCaml UI-tree frameworks and demo applications
+have been removed. Platform code must not define business actions or duplicate
+state transitions.
 
 ## Checks
 
 ```sh
 opam exec -- dune build @shared-platform-check
-cd mobile && swift test --disable-keychain
+opam exec -- dune runtest
+swift test --disable-keychain --package-path mobile
 ```
 
-Build the iOS Simulator app:
+## Build Applications
 
 ```sh
 scripts/build-mobile-ios-simulator.sh
+scripts/build-android-native.sh
+scripts/build-desktop-macos.sh
+opam exec -- dune build @web-demo
 ```
 
-## Status
-
-Working now:
-
-- One shared OCaml reducer for Counter, Todo, and Search.
-- One mobile JSON RPC and C ABI entry point.
-- One SwiftUI source transpiled by Skip Lite to Kotlin/Compose.
-- End-to-end iOS Simulator flow from SwiftUI through C ABI to OCaml.
-- Web and Desktop adapters reuse the same reducer.
-
-- Official OCaml 5.5 target compilers for iOS and Android, built directly from
-  the stable OCaml release without target opam switches.
+iOS and Android target compilers are built directly from the official stable
+OCaml 5.5 release and do not require target opam switches.

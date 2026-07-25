@@ -1,3 +1,15 @@
 (library
  (name ocaml_demo_model)
+ (modules ocaml_demo_model)
+ (modes :standard melange))
+
+(library
+ (name ocaml_demo_json)
+ (modules ocaml_demo_json)
+ (modes :standard melange))
+
+(library
+ (name ocaml_demo_rpc)
+ (modules ocaml_demo_rpc)
+ (libraries ocaml_demo_json ocaml_demo_model)
  (modes :standard melange))

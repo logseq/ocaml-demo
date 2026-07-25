@@ -5,8 +5,7 @@
  (modules main)
  (preprocess
   (pps melange.ppx))
- (libraries ocaml_demo_android ocaml_demo_android_examples)
- (runtime_deps react_runtime.js)
+ (libraries ocaml_demo_model)
  (promote (until-clean))
 (enabled_if
   (= %{context_name} default)))

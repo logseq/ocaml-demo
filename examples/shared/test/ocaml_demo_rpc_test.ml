@@ -1,7 +1,7 @@
 let require condition message = if not condition then failwith message
 
 let call session json =
-  Ocaml_demo_mobile_rpc.Session.call session (Yojson.Safe.to_string json)
+  Ocaml_demo_rpc.Session.call session (Yojson.Safe.to_string json)
   |> Yojson.Safe.from_string
 ;;
 
@@ -42,7 +42,7 @@ let dispatch session ~screen ~action ?payload () =
 ;;
 
 let test_counter_uses_one_call_api () =
-  let session = Ocaml_demo_mobile_rpc.Session.create () in
+  let session = Ocaml_demo_rpc.Session.create () in
   let initial = snapshot session "counter" in
   require_success initial;
   require (member "count" (result initial) = `Int 0) "counter should start at zero";
@@ -55,7 +55,7 @@ let test_counter_uses_one_call_api () =
 ;;
 
 let test_todo_and_search_share_the_same_session_model () =
-  let session = Ocaml_demo_mobile_rpc.Session.create () in
+  let session = Ocaml_demo_rpc.Session.create () in
   ignore
     (dispatch
        session
@@ -86,9 +86,9 @@ let test_todo_and_search_share_the_same_session_model () =
 ;;
 
 let test_protocol_errors_are_structured () =
-  let session = Ocaml_demo_mobile_rpc.Session.create () in
+  let session = Ocaml_demo_rpc.Session.create () in
   let malformed =
-    Ocaml_demo_mobile_rpc.Session.call session "not json" |> Yojson.Safe.from_string
+    Ocaml_demo_rpc.Session.call session "not json" |> Yojson.Safe.from_string
   in
   require (member "ok" malformed = `Bool false) "malformed JSON should fail";
   require
@@ -117,7 +117,7 @@ let test_protocol_errors_are_structured () =
 ;;
 
 let test_json_strings_round_trip_through_ocaml () =
-  let session = Ocaml_demo_mobile_rpc.Session.create () in
+  let session = Ocaml_demo_rpc.Session.create () in
   let title = "Quote: \" Backslash: \\ Newline:\nUnicode: 你好 👋" in
   ignore (dispatch session ~screen:"todo" ~action:"setDraft" ~payload:title ());
   let added = dispatch session ~screen:"todo" ~action:"add" () in
@@ -129,7 +129,7 @@ let test_json_strings_round_trip_through_ocaml () =
   in
   require (member "title" todo = `String title) "JSON strings should round trip";
   let trailing =
-    Ocaml_demo_mobile_rpc.Session.call
+    Ocaml_demo_rpc.Session.call
       session
       {|{"apiVersion":1,"method":"snapshot","params":{"screen":"counter"}} trailing|}
     |> Yojson.Safe.from_string
@@ -138,7 +138,7 @@ let test_json_strings_round_trip_through_ocaml () =
     (member "code" (member "error" trailing) = `String "invalid_json")
     "trailing JSON input should be rejected";
   let leading_zero =
-    Ocaml_demo_mobile_rpc.Session.call
+    Ocaml_demo_rpc.Session.call
       session
       {|{"apiVersion":01,"method":"snapshot","params":{"screen":"counter"}}|}
     |> Yojson.Safe.from_string

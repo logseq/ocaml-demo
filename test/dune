@@ -1,19 +1,8 @@
 (rule
  (alias runtest)
  (deps
-  ../scripts/check-android-jni-layout.sh)
- (action
-  (chdir
-   %{workspace_root}
-   (run /bin/sh scripts/check-android-jni-layout.sh))))
-
-(rule
- (alias runtest)
- (deps
   ../scripts/check-ci-workflow.sh
-  (source_tree ../.github)
-  ../dune-project
-  ../ocaml_demo_native.opam)
+  (source_tree ../.github))
  (action
   (chdir
    %{workspace_root}
@@ -22,24 +11,31 @@
 (rule
  (alias runtest)
  (deps
+  ../scripts/test-project-naming.sh
   (source_tree ..))
  (action
   (chdir
    %{workspace_root}
-   (run /bin/sh scripts/check-no-ocaml_demo-core-deps.sh))))
+   (run /bin/bash scripts/test-project-naming.sh))))
+
+(rule
+ (alias runtest)
+ (deps
+  ../scripts/test-shared-ocaml-architecture.sh
+  (source_tree ..))
+ (action
+  (chdir
+   %{workspace_root}
+   (run /bin/bash scripts/test-shared-ocaml-architecture.sh))))
 
 (rule
  (alias runtest)
  (deps
   (alias ../web/demo/web-demo)
   ../web/demo/dist/web/demo/main.js
-  ../web/demo/dist/web/demo/react_runtime.js
-  ../web/demo/dist/android/examples/android_demo_components.js
   web_demo_smoke.sh)
  (action
   (run
    /bin/sh
    web_demo_smoke.sh
-   ../web/demo/dist/web/demo/main.js
-   ../web/demo/dist/web/demo/react_runtime.js
-   ../web/demo/dist/android/examples/android_demo_components.js)))
+   ../web/demo/dist/web/demo/main.js)))

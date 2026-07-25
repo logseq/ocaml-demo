@@ -2,7 +2,7 @@ _build/
 *.install
 .DS_Store
 
-# Local Apple build/signing artifacts.
+# Local build and signing artifacts.
 build-signing/
 *.app/
 *.dSYM/
@@ -20,11 +20,6 @@ screenshot*.png
 codex-clipboard-*.png
 *.screenshot.png
 
-android/.gradle/
-android/build/
-android/app/build/
-android/local.properties
-
 mobile/.build/
 mobile/.swiftpm/
 mobile/Android/.gradle/
@@ -34,4 +29,5 @@ mobile/Android/local.properties
 mobile/Android/app/src/main/jniLibs/
 
 web/demo/dist/
+web/demo/site-dist/
 web/demo/node_modules/

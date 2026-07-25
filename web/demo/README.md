@@ -1,11 +1,13 @@
-# React Demo
+# OCaml React Demo
 
-This demo renders the existing OCaml counter component through React. State and actions stay in OCaml through `Ocaml_demo_android.App`; React only renders the JSON node tree and sends events back to OCaml.
+The Web UI, event handlers, and React element construction live in `main.ml`.
+Melange compiles them to JavaScript. Counter, Todo, and Search actions call the
+same `Ocaml_demo_model` used by every native application.
 
-Build the generated Melange output:
+Build the Melange output:
 
 ```sh
-opam exec -- dune build @web-demo
+npm run build
 ```
 
 Run it in the browser:
@@ -13,8 +15,5 @@ Run it in the browser:
 ```sh
 cd web/demo
 npm install
-npm run build
 npm run dev
 ```
-
-`vite.config.js` maps Melange-generated package imports to `dist/node_modules`.

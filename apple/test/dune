@@ -1,9 +1,0 @@
-(test
- (name ocaml_demo_apple_test)
- (deps
- ../swiftui/OCamlDemoSwiftUI.swift
- ../swiftui/ocaml_demo_apple_swiftui.ml
- ../swiftui/ocaml_demo_apple_swiftui.mli
- ../swiftui/ocaml_demo_apple_swiftui_stubs.c
- ../swiftui/dune)
- (libraries ocaml_demo_apple))

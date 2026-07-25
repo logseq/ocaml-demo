@@ -67,13 +67,13 @@ cd "$build_dir"
 "$ocamlopt" -I . -c -o ocaml_demo_model.cmx \
   "$repo_root/examples/shared/ocaml_demo_model.ml"
 "$ocamlopt" -I . -c -o ocaml_demo_json.cmi \
-  "$repo_root/mobile/core/ocaml_demo_json.mli"
+  "$repo_root/examples/shared/ocaml_demo_json.mli"
 "$ocamlopt" -I . -c -o ocaml_demo_json.cmx \
-  "$repo_root/mobile/core/ocaml_demo_json.ml"
-"$ocamlopt" -I . -c -o ocaml_demo_mobile_rpc.cmi \
-  "$repo_root/mobile/core/ocaml_demo_mobile_rpc.mli"
-"$ocamlopt" -I . -c -o ocaml_demo_mobile_rpc.cmx \
-  "$repo_root/mobile/core/ocaml_demo_mobile_rpc.ml"
+  "$repo_root/examples/shared/ocaml_demo_json.ml"
+"$ocamlopt" -I . -c -o ocaml_demo_rpc.cmi \
+  "$repo_root/examples/shared/ocaml_demo_rpc.mli"
+"$ocamlopt" -I . -c -o ocaml_demo_rpc.cmx \
+  "$repo_root/examples/shared/ocaml_demo_rpc.ml"
 "$ocamlopt" -I . -c -o ocaml_demo_mobile_entry.cmx \
   "$repo_root/mobile/core/ocaml_demo_mobile_entry.ml"
 
@@ -85,7 +85,7 @@ cd "$build_dir"
   -o ocaml_demo_runtime.o \
   ocaml_demo_model.cmx \
   ocaml_demo_json.cmx \
-  ocaml_demo_mobile_rpc.cmx \
+  ocaml_demo_rpc.cmx \
   ocaml_demo_mobile_entry.cmx
 
 "$ndk_bin/clang" \
@@ -109,7 +109,9 @@ cd "$build_dir"
 "$ndk_bin/llvm-strip" --strip-unneeded "$library"
 cp "$library" "$jni_dir/libocaml_demo_core.so"
 
-"$ndk_bin/llvm-readelf" -h "$library" | grep -q "Machine:.*AArch64\\|Machine:.*Advanced Micro Devices X86-64"
-"$ndk_bin/llvm-readelf" -s "$library" | grep -q "ocaml_demo_call"
+"$ndk_bin/llvm-readelf" -h "$library" \
+  | grep "Machine:.*AArch64\\|Machine:.*Advanced Micro Devices X86-64" \
+  >/dev/null
+"$ndk_bin/llvm-readelf" -s "$library" | grep "ocaml_demo_call" >/dev/null
 
 echo "$jni_dir/libocaml_demo_core.so"

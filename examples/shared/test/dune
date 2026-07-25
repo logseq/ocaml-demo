@@ -7,3 +7,13 @@
  (deps ocaml_demo_model_test.exe)
  (action
   (run ./ocaml_demo_model_test.exe)))
+
+(executable
+ (name ocaml_demo_rpc_test)
+ (libraries ocaml_demo_rpc yojson))
+
+(rule
+ (alias runtest)
+ (deps ocaml_demo_rpc_test.exe)
+ (action
+  (run ./ocaml_demo_rpc_test.exe)))

@@ -2,14 +2,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "opam exec -- dune build @web-demo",
-    "dev": "vite --host 127.0.0.1"
+    "build": "npm run build:ocaml && vite build",
+    "build:ocaml": "opam exec -- dune build @web-demo",
+    "dev": "npm run build:ocaml && vite --host 127.0.0.1"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^5.0.0",
-    "vite": "^7.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "vite": "^7.0.0"
   },
   "devDependencies": {}
 }

@@ -13,26 +13,25 @@ concurrency:
 jobs:
   test:
     name: OCaml tests
-    runs-on: macos-15-intel
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system dependencies
-        run: |
-          brew install pkg-config ripgrep
-
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 5.2.1
+          ocaml-compiler: 5.5.0
 
       - name: Install OCaml dependencies
         run: opam install . --deps-only --with-test -y
 
       - name: Build
-        run: opam exec -- dune build @install
+        run: opam exec -- dune build @shared-platform-check
 
       - name: Test
         run: opam exec -- dune runtest
+
+      - name: Check shared architecture
+        run: scripts/test-shared-ocaml-architecture.sh

@@ -1,5 +1,0 @@
-(library
- (name ocaml_demo_android)
- (public_name ocaml_demo_android)
- (libraries ocaml_demo_native)
- (modes :standard melange))

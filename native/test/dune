@@ -1,9 +1,0 @@
-(executable
- (name ocaml_demo_native_app_driver_test)
- (libraries ocaml_demo_native))
-
-(rule
- (alias runtest)
- (deps ocaml_demo_native_app_driver_test.exe)
- (action
-  (run ./ocaml_demo_native_app_driver_test.exe)))
