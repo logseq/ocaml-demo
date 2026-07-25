@@ -17,3 +17,9 @@ cd web/demo
 npm install
 npm run dev
 ```
+
+Run the Maestro browser test:
+
+```sh
+npm run test:maestro
+```

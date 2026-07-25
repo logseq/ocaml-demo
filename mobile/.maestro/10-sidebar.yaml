@@ -31,13 +31,13 @@ appId: com.logseq.ocamldemo
 - assertVisible:
     id: "label.counter.value"
 - swipe:
-    start: 5%, 50%
+    start: 15%, 50%
     end: 80%, 50%
     duration: 500
 - assertVisible:
     id: "link.sidebar.counter"
 - swipe:
-    start: 50%, 50%
+    start: 80%, 50%
     end: 5%, 50%
     duration: 500
 - assertNotVisible:

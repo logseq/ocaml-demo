@@ -1,0 +1,17 @@
+url: ${WEB_URL}
+---
+- launchApp
+- assertVisible: "OCaml Demo"
+- assertVisible: "0"
+- tapOn: "Increment"
+- assertVisible: "1"
+- tapOn: "Decrement"
+- assertVisible: "0"
+- tapOn: "Decrement"
+- assertVisible: "-1"
+- tapOn: "Increment"
+- assertVisible: "0"
+- tapOn: "Increment"
+- assertVisible: "1"
+- tapOn: "Reset"
+- assertVisible: "0"

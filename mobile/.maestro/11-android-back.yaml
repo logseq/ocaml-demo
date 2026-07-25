@@ -1,0 +1,17 @@
+appId: com.logseq.ocamldemo
+---
+- launchApp
+- assertVisible:
+    id: "button.sidebar"
+- tapOn:
+    id: "button.sidebar"
+- assertVisible:
+    id: "button.sidebar.dismiss"
+- pressKey: BACK
+- assertNotVisible:
+    id: "button.sidebar.dismiss"
+- assertVisible:
+    id: "label.counter.value"
+- pressKey: BACK
+- assertNotVisible:
+    id: "button.sidebar"

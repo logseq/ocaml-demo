@@ -1,4 +1,7 @@
 import SwiftUI
+#if SKIP
+import androidx.activity.compose.BackHandler
+#endif
 
 public struct OCamlDemoView: View {
     @State private var store: OCamlDemoStore
@@ -174,6 +177,15 @@ private struct SidebarContainerView: View {
                 sidebarWidth > zero ? contentOffset / sidebarWidth : zero
 
             ZStack(alignment: .leading) {
+                #if SKIP
+                ComposeView { _ in
+                    BackHandler(enabled: isSidebarPresented) {
+                        isSidebarPresented = false
+                    }
+                }
+                .frame(width: 0, height: 0)
+                #endif
+
                 SidebarContent(
                     selectedScreen: selectedScreen,
                     selectScreen: { screen in

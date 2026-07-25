@@ -4,7 +4,8 @@
   "scripts": {
     "build": "npm run build:ocaml && vite build",
     "build:ocaml": "opam exec -- dune build @web-demo",
-    "dev": "npm run build:ocaml && vite --host 127.0.0.1"
+    "dev": "npm run build:ocaml && vite --host 127.0.0.1",
+    "test:maestro": "../../scripts/test-web-maestro.sh"
   },
   "dependencies": {
     "react": "^19.0.0",
