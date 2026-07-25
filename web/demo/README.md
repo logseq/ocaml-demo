@@ -5,7 +5,7 @@ This demo renders the existing OCaml counter component through React. State and 
 Build the generated Melange output:
 
 ```sh
-opam exec --switch=simulator-5.4.1 -- dune build @web-demo
+opam exec -- dune build @web-demo
 ```
 
 Run it in the browser:

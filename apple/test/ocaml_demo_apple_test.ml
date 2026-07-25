@@ -60,7 +60,6 @@ let swiftui_backend_source_path = "../swiftui/ocaml_demo_apple_swiftui.ml"
 let swiftui_stubs_source_path = "../swiftui/ocaml_demo_apple_swiftui_stubs.c"
 let swiftui_dune_path = "../swiftui/dune"
 let apple_source_path = "../src/ocaml_demo_apple.ml"
-let bootstrap_ios_script_path = "../../scripts/bootstrap-ios-jane.sh"
 
 let test_navigation_value_links_keep_primary_tap_for_link () =
   let source = read_file swiftui_source_path in
@@ -1156,20 +1155,6 @@ let test_swiftui_lazy_list_disappear_does_not_enqueue_release_work () =
   require
     (not (contains source ~substring:"releaseToken"))
     "lazy row state should not carry release tokens when disappear does not detach rows"
-;;
-
-let test_ios_bootstrap_prefers_checkout_sources_for_local_packages () =
-  let source = read_file bootstrap_ios_script_path in
-  require
-    (contains source ~substring:"$repo_root/$package.opam")
-    "iOS bootstrap should detect packages that live in the current checkout";
-  require
-    (contains source ~substring:"printf '%s\\n' \"$repo_root\"")
-    "iOS bootstrap should build local packages from the current checkout so Swift assets \
-     installed into ios-sysroot cannot lag behind source edits";
-  require
-    (contains source ~substring:"find \"$sources_dir\"")
-    "iOS bootstrap should still fall back to opam switch sources for external packages"
 ;;
 
 let test_swiftui_lazy_list_refreshes_visible_rows_after_provider_update () =
@@ -3689,7 +3674,6 @@ let () =
   test_swiftui_lazy_list_keeps_slots_off_scroll_hot_path ();
   test_swiftui_lazy_list_foreach_resolves_keys_only_for_visible_rows ();
   test_swiftui_lazy_list_disappear_does_not_enqueue_release_work ();
-  test_ios_bootstrap_prefers_checkout_sources_for_local_packages ();
   test_swiftui_lazy_list_refreshes_visible_rows_after_provider_update ();
   test_swiftui_lazy_list_content_cache_uses_stable_row_key ();
   test_swiftui_lazy_list_defers_append_row_count_while_scrolling ();

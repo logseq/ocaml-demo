@@ -1,8 +1,0 @@
-(lang dune 3.23)
-
-(env
- (_
-  (flags
-   (:standard -w -56))
-  (c_flags
-   (:standard -DHAS_FULL_THREAD_VARIABLES))))

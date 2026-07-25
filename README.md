@@ -31,8 +31,7 @@ Counter, Todo, and Search examples. The model is a pure OCaml reducer and is
 used by:
 
 - iOS through the mobile JSON/C ABI adapter.
-- Android's generated Compose UI through the same JSON API once the Android
-  OCaml native library is packaged.
+- Android's generated Compose UI through the same JSON API.
 - Web and Desktop directly, without serializing through JSON.
 - The existing Apple and Android example adapters.
 
@@ -78,8 +77,5 @@ Working now:
 - End-to-end iOS Simulator flow from SwiftUI through C ABI to OCaml.
 - Web and Desktop adapters reuse the same reducer.
 
-Deferred:
-
-- Building and packaging the OCaml native library for Android. The generated
-  Compose app shell builds, but it must not be launched without
-  `libocaml_demo_core.so`.
+- Official OCaml 5.5 target compilers for iOS and Android, built directly from
+  the stable OCaml release without target opam switches.

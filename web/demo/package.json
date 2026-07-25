@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "opam exec --switch=simulator-5.4.1 -- dune build @web-demo",
+    "build": "opam exec -- dune build @web-demo",
     "dev": "vite --host 127.0.0.1"
   },
   "dependencies": {

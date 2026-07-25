@@ -19,6 +19,9 @@ Build the iOS Simulator application from the repository root:
 scripts/build-mobile-ios-simulator.sh
 ```
 
+The first build bootstraps the official OCaml 5.5 stable release with
+`make crossopt`. It does not require an iOS opam switch.
+
 Build the OCaml Android library from the repository root:
 
 ```sh
