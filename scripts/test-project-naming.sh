@@ -21,8 +21,7 @@ while IFS= read -r path; do
     failure=1
   fi
 
-  if rg --ignore-case --files-with-matches "$legacy_name" -- "$repository_root/$path" \
-    >/dev/null 2>&1; then
+  if grep -FIqi -- "$legacy_name" "$repository_root/$path"; then
     echo "Legacy name remains in file: $path" >&2
     failure=1
   fi
@@ -32,7 +31,7 @@ require_text() {
   local path=$1
   local expected=$2
 
-  if ! rg --fixed-strings --quiet "$expected" "$repository_root/$path"; then
+  if ! grep -Fq -- "$expected" "$repository_root/$path"; then
     echo "Expected '$expected' in $path" >&2
     failure=1
   fi

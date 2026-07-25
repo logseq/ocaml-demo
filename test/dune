@@ -31,6 +31,16 @@
 (rule
  (alias runtest)
  (deps
+  ../scripts/test-repository-check-portability.sh
+  (source_tree ..))
+ (action
+  (chdir
+   %{workspace_root}
+   (run /bin/bash scripts/test-repository-check-portability.sh))))
+
+(rule
+ (alias runtest)
+ (deps
   (alias ../web/demo/web-demo)
   ../web/demo/dist/web/demo/main.js
   web_demo_smoke.sh)
