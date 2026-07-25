@@ -1,7 +1,7 @@
 (library
  (name ocaml_demo_mobile_rpc)
- (modules ocaml_demo_mobile_rpc)
- (libraries ocaml_demo_model yojson))
+ (modules ocaml_demo_json ocaml_demo_mobile_rpc)
+ (libraries ocaml_demo_model))
 
 (executable
  (name ocaml_demo_mobile_entry)

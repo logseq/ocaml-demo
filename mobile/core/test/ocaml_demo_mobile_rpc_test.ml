@@ -9,7 +9,9 @@ let member name json = Yojson.Safe.Util.member name json
 let result json = member "result" json
 
 let require_success json =
-  require (member "ok" json = `Bool true) "RPC call should succeed"
+  require
+    (member "ok" json = `Bool true)
+    ("RPC call should succeed: " ^ Yojson.Safe.to_string json)
 ;;
 
 let snapshot session screen =
@@ -114,8 +116,41 @@ let test_protocol_errors_are_structured () =
     "invalid calls should not mutate the shared model"
 ;;
 
+let test_json_strings_round_trip_through_ocaml () =
+  let session = Ocaml_demo_mobile_rpc.Session.create () in
+  let title = "Quote: \" Backslash: \\ Newline:\nUnicode: 你好 👋" in
+  ignore (dispatch session ~screen:"todo" ~action:"setDraft" ~payload:title ());
+  let added = dispatch session ~screen:"todo" ~action:"add" () in
+  let items = member "items" (result added) |> Yojson.Safe.Util.to_list in
+  let todo =
+    match items with
+    | [ todo ] -> todo
+    | _ -> failwith "escaped todo dispatch should return one item"
+  in
+  require (member "title" todo = `String title) "JSON strings should round trip";
+  let trailing =
+    Ocaml_demo_mobile_rpc.Session.call
+      session
+      {|{"apiVersion":1,"method":"snapshot","params":{"screen":"counter"}} trailing|}
+    |> Yojson.Safe.from_string
+  in
+  require
+    (member "code" (member "error" trailing) = `String "invalid_json")
+    "trailing JSON input should be rejected";
+  let leading_zero =
+    Ocaml_demo_mobile_rpc.Session.call
+      session
+      {|{"apiVersion":01,"method":"snapshot","params":{"screen":"counter"}}|}
+    |> Yojson.Safe.from_string
+  in
+  require
+    (member "code" (member "error" leading_zero) = `String "invalid_json")
+    "invalid JSON numbers should be rejected"
+;;
+
 let () =
   test_counter_uses_one_call_api ();
   test_todo_and_search_share_the_same_session_model ();
-  test_protocol_errors_are_structured ()
+  test_protocol_errors_are_structured ();
+  test_json_strings_round_trip_through_ocaml ()
 ;;

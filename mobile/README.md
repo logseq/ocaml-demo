@@ -19,12 +19,18 @@ Build the iOS Simulator application from the repository root:
 scripts/build-mobile-ios-simulator.sh
 ```
 
-The Android Gradle shell can be compiled with:
+Build the OCaml Android library from the repository root:
+
+```sh
+scripts/build-android-native.sh
+```
+
+Then compile the Android app:
 
 ```sh
 cd Android
 gradle :app:assembleDebug --console=plain
 ```
 
-The Android UI shell does not yet include `libocaml_demo_core.so`. Android OCaml
-cross-compilation and packaging are intentionally deferred.
+The APK contains `libocaml_demo_core.so` and calls the same shared OCaml reducer
+through SkipFFI/JNA.

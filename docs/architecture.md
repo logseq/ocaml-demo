@@ -71,10 +71,9 @@ meaningful state belongs in OCaml.
 iOS links the cross-compiled OCaml object into the application and calls
 `ocaml_demo_call` through the C ABI.
 
-Android will load `libocaml_demo_core.so` and bind the same symbol from generated
-Kotlin through SkipFFI/JNA or JNI. Building that Android OCaml library is
-currently deferred; the generated Compose shell is present but not a complete
-runtime application yet.
+Android loads `libocaml_demo_core.so` and binds the same symbol from generated
+Kotlin through SkipFFI/JNA. The library is built with the official OCaml 5.5.0
+`make crossopt` flow and the Android NDK.
 
 The older `ocaml_demo_native`, `ocaml_demo_android`, and `ocaml_demo_apple`
 UI-tree APIs are kept for compatibility and experiments. New shared application

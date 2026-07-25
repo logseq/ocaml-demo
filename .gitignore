@@ -31,6 +31,7 @@ mobile/Android/.gradle/
 mobile/Android/build/
 mobile/Android/app/build/
 mobile/Android/local.properties
+mobile/Android/app/src/main/jniLibs/
 
 web/demo/dist/
 web/demo/node_modules/

@@ -1,7 +1,8 @@
 module Model = Ocaml_demo_model
+module Json = Ocaml_demo_json
 
 let json_response ~ok ~result ~error =
-  Yojson.Safe.to_string
+  Json.to_string
     (`Assoc
       [ "apiVersion", `Int 1
       ; "ok", `Bool ok
@@ -169,9 +170,9 @@ module Session = struct
   ;;
 
   let call session request =
-    match Yojson.Safe.from_string request with
-    | json -> route session json
-    | exception Yojson.Json_error _ ->
+    match Json.from_string request with
+    | Ok json -> route session json
+    | Error _ ->
       failure ~code:"invalid_json" ~message:"request must be valid JSON"
   ;;
 end
