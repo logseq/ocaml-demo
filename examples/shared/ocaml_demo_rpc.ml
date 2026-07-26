@@ -36,72 +36,114 @@ let optional_string name fields =
   | Some _ -> Error ("field must be a string: " ^ name)
 ;;
 
+let task_json (task : Model.task) =
+  `Assoc
+    [ "id", `Int task.id
+    ; "title", `String task.title
+    ; "completed", `Bool task.completed
+    ]
+;;
+
+let block_json (block : Model.block) =
+  `Assoc
+    [ "id", `Int block.id
+    ; "content", `String block.content
+    ; "depth", `Int block.depth
+    ]
+;;
+
+let journal_json (journal : Model.journal) =
+  `Assoc [ "id", `Int journal.id; "title", `String journal.title ]
+;;
+
 let model_json model ~screen =
   let common =
     [ "revision", `Int (Model.revision model); "screen", `String screen ]
   in
-  let screen_fields =
-    match screen with
-    | "counter" -> Ok [ "count", `Int (Model.count model) ]
-    | "todo" ->
-      let todo_json (todo : Model.todo) =
-        `Assoc
-          [ "id", `Int todo.id
-          ; "title", `String todo.title
-          ; "completed", `Bool todo.completed
-          ]
-      in
-      Ok
-        [ "draft", `String (Model.todo_draft model)
-        ; "items", `List (List.map todo_json (Model.todos model))
-        ]
-    | "search" ->
-      Ok
-        [ "query", `String (Model.search_query model)
-        ; "results", `List (List.map (fun value -> `String value) (Model.search_results model))
-        ]
-    | _ -> Error ("unknown screen: " ^ screen)
-  in
-  match screen_fields with
-  | Ok fields -> Ok (`Assoc (common @ fields))
-  | Error message -> Error message
+  match screen with
+  | "journal" ->
+    Ok
+      (`Assoc
+        (common
+         @ [ "selectedJournalId", `Int (Model.selected_journal_id model)
+           ; "journals", `List (List.map journal_json (Model.journals model))
+           ]))
+  | "tasks" ->
+    Ok
+      (`Assoc
+        (common
+         @ [ "draft", `String (Model.task_draft model)
+           ; "items", `List (List.map task_json (Model.tasks model))
+           ]))
+  | "outliner" ->
+    Ok
+      (`Assoc
+        (common @ [ "blocks", `List (List.map block_json (Model.blocks model)) ]))
+  | _ -> Error ("unknown screen: " ^ screen)
+;;
+
+let required_payload action = function
+  | Some payload -> Ok payload
+  | None -> Error ("action requires payload: " ^ action)
+;;
+
+let entity_id action payload =
+  match required_payload action payload with
+  | Error error -> Error error
+  | Ok payload ->
+    (match int_of_string_opt payload with
+     | Some id -> Ok id
+     | None -> Error ("entity ID must be an integer: " ^ payload))
+;;
+
+let outliner_payload action payload =
+  match required_payload action payload with
+  | Error error -> Error error
+  | Ok payload ->
+    (match Json.from_string payload with
+     | Ok (`Assoc fields) ->
+       (match assoc_field "id" fields with
+        | Some (`Int id) -> Ok (id, assoc_field "content" fields)
+        | _ -> Error "outliner payload requires an integer id")
+     | _ -> Error "outliner payload must be a JSON object")
 ;;
 
 let action_for_request ~screen ~action ~payload =
-  let required_payload () =
-    match payload with
-    | Some payload -> Ok payload
-    | None -> Error ("action requires payload: " ^ action)
-  in
-  let todo_id () =
-    match required_payload () with
-    | Error error -> Error error
-    | Ok payload ->
-      (match int_of_string_opt payload with
-       | Some id -> Ok id
-       | None -> Error ("todo ID must be an integer: " ^ payload))
-  in
   match screen, action with
-  | "counter", "increment" -> Ok Model.Increment
-  | "counter", "decrement" -> Ok Model.Decrement
-  | "counter", "reset" -> Ok Model.Reset_counter
-  | "todo", "setDraft" ->
-    Result.map (fun payload -> Model.Set_todo_draft payload) (required_payload ())
-  | "todo", "add" -> Ok Model.Add_todo
-  | "todo", "toggle" -> Result.map (fun id -> Model.Toggle_todo id) (todo_id ())
-  | "todo", "delete" -> Result.map (fun id -> Model.Delete_todo id) (todo_id ())
-  | "search", "setQuery" ->
-    Result.map (fun payload -> Model.Set_search_query payload) (required_payload ())
-  | ("counter" | "todo" | "search"), _ -> Error ("unknown action: " ^ action)
+  | "journal", "ensureToday" ->
+    Result.map (fun date -> Model.Ensure_today date) (required_payload action payload)
+  | "journal", "open" ->
+    Result.map (fun id -> Model.Select_journal id) (entity_id action payload)
+  | "tasks", "setDraft" ->
+    Result.map (fun value -> Model.Set_task_draft value) (required_payload action payload)
+  | "tasks", "add" -> Ok Model.Add_task
+  | "tasks", "toggle" ->
+    Result.map (fun id -> Model.Toggle_task id) (entity_id action payload)
+  | "tasks", "delete" ->
+    Result.map (fun id -> Model.Delete_task id) (entity_id action payload)
+  | "outliner", "setContent" ->
+    (match outliner_payload action payload with
+     | Ok (id, Some (`String content)) -> Ok (Model.Set_block_content (id, content))
+     | Ok _ -> Error "setContent payload requires string content"
+     | Error error -> Error error)
+  | "outliner", "insertSibling" ->
+    Result.map
+      (fun (id, _) -> Model.Add_sibling_block id)
+      (outliner_payload action payload)
+  | "outliner", "indent" ->
+    Result.map (fun (id, _) -> Model.Indent_block id) (outliner_payload action payload)
+  | "outliner", "outdent" ->
+    Result.map (fun (id, _) -> Model.Outdent_block id) (outliner_payload action payload)
+  | ("journal" | "tasks" | "outliner"), _ -> Error ("unknown action: " ^ action)
   | _ -> Error ("unknown screen: " ^ screen)
 ;;
 
 module Session = struct
   type t =
-    { mutable model : Model.t
+    { model : Model.t
     }
 
-  let create () = { model = Model.initial }
+  let create ?storage () = { model = Model.create ?storage () }
 
   let snapshot session ~screen =
     match model_json session.model ~screen with
@@ -126,15 +168,21 @@ module Session = struct
               else "invalid_params"
             in
             failure ~code ~message
-          | Ok action ->
-            (match Model.update session.model action with
-             | Error (Model.Unknown_todo id) ->
+          | Ok model_action ->
+            (match Model.update session.model model_action with
+             | Error (Model.Unknown_task id) ->
                failure
-                 ~code:"unknown_todo"
-                 ~message:(Printf.sprintf "unknown todo: %d" id)
-             | Ok model ->
-               session.model <- model;
-               snapshot session ~screen)))
+                 ~code:"unknown_task"
+                 ~message:(Printf.sprintf "unknown task: %d" id)
+             | Error (Model.Unknown_journal id) ->
+               failure
+                 ~code:"unknown_journal"
+                 ~message:(Printf.sprintf "unknown journal: %d" id)
+             | Error (Model.Unknown_block id) ->
+               failure
+                 ~code:"unknown_block"
+                 ~message:(Printf.sprintf "unknown block: %d" id)
+             | Ok () -> snapshot session ~screen)))
   ;;
 
   let route session request =

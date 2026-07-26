@@ -4,12 +4,13 @@
 
 `examples/shared/ocaml_demo_model.ml` is the only owner of:
 
-- Counter state and actions.
-- Todo state, identifiers, and validation.
-- Search query state and filtering.
+- Journal creation and selection.
+- Outliner block content, ordering, indentation, and task status.
+- Task creation, completion, and deletion.
 - The shared revision number.
 
-It has no UI, JSON, C, Swift, Kotlin, JavaScript, or platform dependency.
+It has no UI, JSON, C, Swift, Kotlin, JavaScript, or platform dependency. Its
+state is a DataScript database using the `Data.Storage` protocol.
 
 `examples/shared/ocaml_demo_rpc.ml` projects the model into the versioned JSON
 protocol used by native FFI clients. It contains protocol routing but no second
@@ -25,12 +26,16 @@ business model.
 
 All three call the same `ocaml_demo_call` C ABI and shared OCaml RPC. Views may
 own presentation state such as selected tabs or focus, but not business state.
+Native DataScript transactions are persisted to each app's local SQLite file.
 
 ## Web UI
 
 `web/demo/main.ml` contains the React UI in OCaml. Melange compiles its typed
 calls to `Ocaml_demo_model` and React externals into JavaScript. There is no
-parallel JavaScript renderer or JavaScript business model.
+parallel JavaScript renderer or JavaScript business model. SQLite-Wasm stores
+the DataScript transaction log in OPFS when the app runs in a browser. On
+mobile, the same Melange React journal UI runs inside a WebView and sends
+structured actions to the native OCaml core.
 
 ## Platform Boundary
 

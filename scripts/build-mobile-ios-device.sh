@@ -6,26 +6,32 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 mobile_root="$repo_root/mobile"
 ocaml_version=${OCAML_DEMO_IOS_OCAML_VERSION:-5.5.0}
 deployment_target=${OCAML_DEMO_IOS_DEPLOYMENT_TARGET:-17.0}
-sdk_path=$(xcrun --sdk iphonesimulator --show-sdk-path)
-triple="arm64-apple-ios${deployment_target}-simulator"
-swift_build_dir="$mobile_root/.build/arm64-apple-ios-simulator/debug"
+sdk_path=$(xcrun --sdk iphoneos --show-sdk-path)
+triple="arm64-apple-ios${deployment_target}"
+swift_build_dir="$mobile_root/.build/arm64-apple-ios/debug"
 target_prefix="$repo_root/_build/ios-toolchain/$triple-$ocaml_version"
-core_build_dir="$repo_root/_build/ios-core/simulator"
+core_build_dir="$repo_root/_build/ios-core/device"
 core_object="$core_build_dir/ocaml_demo_runtime.o"
 ffi_object="$core_build_dir/ocaml_demo_core_ffi.o"
 sqlite_object="$core_build_dir/datascript_sqlite_stubs.o"
-app_dir="$mobile_root/.build/OCamlDemo.app"
+app_dir="$mobile_root/.build/OCamlDemo-device.app"
 frameworks_dir="$app_dir/Frameworks"
+profile=${OCAML_DEMO_IOS_PROFILE:-"$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/472c0f2f-8c2a-4190-a118-197254f6079d.mobileprovision"}
+signing_identity=${OCAML_DEMO_IOS_SIGNING_IDENTITY:-3BD54F6A1F7C4DEAAC47F3842AD01A8173173282}
 
-"$repo_root/scripts/bootstrap-ios-ocaml.sh" >/dev/null
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+[[ -f $profile ]] || die "provisioning profile was not found: $profile"
+
+"$repo_root/scripts/bootstrap-ios-device-ocaml.sh" >/dev/null
 "$repo_root/scripts/build-journal-web.sh"
-if [[ -d $app_dir ]]; then
-  chmod -R u+w "$app_dir"
-fi
 
 ocamlopt="$target_prefix/bin/ocamlopt.opt"
 ocaml_lib="$target_prefix/lib/ocaml"
-clang=$(xcrun --sdk iphonesimulator --find clang)
+clang=$(xcrun --sdk iphoneos --find clang)
 
 mkdir -p "$core_build_dir"
 "$repo_root/scripts/build-mobile-ocaml-deps.sh" \
@@ -99,8 +105,10 @@ swift build \
   -Xlinker "$sqlite_object" \
   -Xlinker -lsqlite3
 
+rm -rf "$app_dir"
 mkdir -p "$frameworks_dir"
 cp "$mobile_root/Darwin/Info.plist" "$app_dir/Info.plist"
+cp "$profile" "$app_dir/embedded.mobileprovision"
 cp "$swift_build_dir/libOCamlDemo.dylib" "$frameworks_dir/libOCamlDemo.dylib"
 
 for bundle in "$swift_build_dir"/*.bundle; do
@@ -108,7 +116,7 @@ for bundle in "$swift_build_dir"/*.bundle; do
   cp -R "$bundle" "$app_dir/"
 done
 
-xcrun --sdk iphonesimulator swiftc \
+xcrun --sdk iphoneos swiftc \
   -parse-as-library \
   -module-name OCamlDemoShell \
   -target "$triple" \
@@ -125,7 +133,20 @@ xcrun --sdk iphonesimulator swiftc \
   "$mobile_root/Darwin/Sources/Main.swift" \
   -o "$app_dir/OCamlDemo"
 
-codesign --force --sign - --timestamp=none "$frameworks_dir/libOCamlDemo.dylib"
-codesign --force --sign - --timestamp=none "$app_dir"
+profile_plist=$(mktemp)
+entitlements=$(mktemp)
+trap 'rm -f "$profile_plist" "$entitlements"' EXIT
+security cms -D -i "$profile" >"$profile_plist"
+plutil -extract Entitlements xml1 -o "$entitlements" "$profile_plist"
+plutil -replace application-identifier \
+  -string K378MFWK59.com.logseq.ocamldemo \
+  "$entitlements"
+
+codesign --force --sign "$signing_identity" --timestamp=none \
+  "$frameworks_dir/libOCamlDemo.dylib"
+codesign --force --sign "$signing_identity" --timestamp=none \
+  --entitlements "$entitlements" \
+  "$app_dir"
+codesign --verify --deep --strict "$app_dir"
 
 echo "$app_dir"

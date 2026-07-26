@@ -43,15 +43,37 @@ do
 done
 
 if ! grep -Fq -- \
-  "(libraries ocaml_demo_model)" \
+  "ocaml_demo_model" \
   "$repo_root/web/demo/dune"
 then
   fail "Web must depend directly on the shared OCaml model"
 fi
 
+if ! grep -Fq -- \
+  "build-mobile-ocaml-deps.sh" \
+  "$repo_root/scripts/build-android-native.sh"
+then
+  fail "Android must compile the shared DataScript dependencies"
+fi
+
+if ! grep -Fq -- \
+  "build-android-sqlite.sh" \
+  "$repo_root/scripts/build-android-native.sh"
+then
+  fail "Android must link SQLite for DataScript persistence"
+fi
+
+if ! grep -Fq -- \
+  "TextDecoder" \
+  "$repo_root/web/demo/index.html"
+then
+  fail "Native WebView snapshots must decode base64 as UTF-8"
+fi
+
 legacy_package_reference=0
 while IFS= read -r -d '' path; do
   [[ $path != scripts/test-shared-ocaml-architecture.sh ]] || continue
+  [[ -f $repo_root/$path ]] || continue
   if grep -EIq -- "ocaml_demo_(android|apple|native)" "$repo_root/$path"; then
     legacy_package_reference=1
     break
@@ -64,6 +86,7 @@ fi
 
 platform_action_type=0
 while IFS= read -r -d '' path; do
+  [[ -f $repo_root/$path ]] || continue
   if grep -EIq -- "type action[[:space:]]*=" "$repo_root/$path"; then
     platform_action_type=1
     break

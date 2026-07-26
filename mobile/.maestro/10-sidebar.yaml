@@ -6,9 +6,9 @@ appId: com.logseq.ocamldemo
 - tapOn:
     id: "button.sidebar"
 - assertVisible:
-    id: "link.sidebar.counter"
+    id: "link.sidebar.tasks"
 - assertVisible:
-    id: "link.sidebar.todo"
+    id: "link.sidebar.journal"
 - assertVisible:
     id: "button.sidebar.dismiss"
 - tapOn:
@@ -16,26 +16,26 @@ appId: com.logseq.ocamldemo
 - assertNotVisible:
     id: "button.sidebar.dismiss"
 - assertVisible:
-    id: "label.counter.value"
+    id: "field.tasks.draft"
 - tapOn:
     id: "button.sidebar"
 - takeScreenshot: .maestro/screenshots/sidebar-open
 - tapOn:
-    id: "link.sidebar.todo"
+    id: "link.sidebar.journal"
 - assertVisible:
-    id: "field.todo.draft"
+    id: "webview.journal"
 - tapOn:
     id: "button.sidebar"
 - tapOn:
-    id: "link.sidebar.counter"
+    id: "link.sidebar.tasks"
 - assertVisible:
-    id: "label.counter.value"
+    id: "field.tasks.draft"
 - swipe:
     start: 15%, 50%
     end: 80%, 50%
     duration: 500
 - assertVisible:
-    id: "link.sidebar.counter"
+    id: "link.sidebar.tasks"
 - swipe:
     start: 80%, 50%
     end: 5%, 50%
@@ -43,4 +43,4 @@ appId: com.logseq.ocamldemo
 - assertNotVisible:
     id: "button.sidebar.dismiss"
 - assertVisible:
-    id: "label.counter.value"
+    id: "field.tasks.draft"

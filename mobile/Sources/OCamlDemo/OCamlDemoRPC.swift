@@ -2,25 +2,36 @@ import Foundation
 import Observation
 
 public enum OCamlDemoScreen: String, Codable {
-    case counter
-    case todo
-    case search
+    case journal
+    case tasks
+    case outliner
 }
 
-public struct OCamlDemoTodo: Codable, Identifiable {
+public struct OCamlDemoJournal: Codable, Identifiable {
+    public let id: Int
+    public let title: String
+}
+
+public struct OCamlDemoTask: Codable, Identifiable {
     public let id: Int
     public let title: String
     public let completed: Bool
 }
 
-public struct OCamlDemoSnapshot: Decodable {
+public struct OCamlDemoBlock: Codable, Identifiable {
+    public let id: Int
+    public let content: String
+    public let depth: Int
+}
+
+public struct OCamlDemoSnapshot: Codable {
     public let revision: Int
     public let screen: OCamlDemoScreen
-    public let count: Int?
     public let draft: String?
-    public let items: [OCamlDemoTodo]?
-    public let query: String?
-    public let results: [String]?
+    public let items: [OCamlDemoTask]?
+    public let journals: [OCamlDemoJournal]?
+    public let selectedJournalId: Int?
+    public let blocks: [OCamlDemoBlock]?
 }
 
 public struct OCamlDemoCoreError: Decodable, Equatable {
@@ -44,11 +55,18 @@ public struct OCamlDemoRPCParams: Encodable {
     public let screen: String
     public let action: String?
     public let payload: String?
+    public let path: String?
 
-    public init(screen: String, action: String?, payload: String?) {
+    public init(
+        screen: String,
+        action: String?,
+        payload: String?,
+        path: String? = nil
+    ) {
         self.screen = screen
         self.action = action
         self.payload = payload
+        self.path = path
     }
 }
 
@@ -72,6 +90,21 @@ public struct OCamlDemoRPCRequest: Encodable {
 
     public init(call: @escaping (String) -> String) {
         callCore = call
+    }
+
+    public func open(path: String) {
+        perform(
+            OCamlDemoRPCRequest(
+                apiVersion: 1,
+                method: "open",
+                params: OCamlDemoRPCParams(
+                    screen: OCamlDemoScreen.journal.rawValue,
+                    action: nil,
+                    payload: nil,
+                    path: path
+                )
+            )
+        )
     }
 
     public func load(_ screen: OCamlDemoScreen) {

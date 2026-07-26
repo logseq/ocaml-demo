@@ -10,4 +10,7 @@
   (ocaml (>= 5.1.0))
   dune
   melange
+  datascript_ocaml
+  datascript-ocaml-native
+  datascript-ocaml-melange
   (yojson :with-test)))

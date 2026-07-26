@@ -1,6 +1,9 @@
 (executable
  (name ocaml_demo_model_test)
- (libraries ocaml_demo_model))
+ (libraries
+  ocaml_demo_model
+  datascript-ocaml-native
+  datascript-ocaml-native.sqlite))
 
 (rule
  (alias runtest)
@@ -10,7 +13,7 @@
 
 (executable
  (name ocaml_demo_rpc_test)
- (libraries ocaml_demo_rpc yojson))
+ (libraries ocaml_demo_rpc datascript-ocaml-native yojson))
 
 (rule
  (alias runtest)

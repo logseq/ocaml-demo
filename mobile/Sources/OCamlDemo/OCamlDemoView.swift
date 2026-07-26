@@ -1,14 +1,24 @@
 import SwiftUI
+#if os(iOS) || SKIP
+import SkipWeb
+#endif
 #if SKIP
 import androidx.activity.compose.BackHandler
 #endif
 
 public struct OCamlDemoView: View {
     @State private var store: OCamlDemoStore
-    @State private var selectedScreen = OCamlDemoScreen.counter
+    @State private var selectedScreen = OCamlDemoScreen.journal
 
-    public init(call: @escaping (String) -> String) {
-        store = OCamlDemoStore(call: call)
+    public init(
+        call: @escaping (String) -> String,
+        databasePath: String? = nil
+    ) {
+        let store = OCamlDemoStore(call: call)
+        if let databasePath {
+            store.open(path: databasePath)
+        }
+        self.store = store
     }
 
     public var body: some View {
@@ -31,19 +41,19 @@ struct SidebarContent: View {
                 .padding(.bottom, 20)
 
             SidebarLink(
-                title: "Counter",
-                identifier: "link.sidebar.counter",
-                isSelected: selectedScreen == .counter
+                title: "Journals",
+                identifier: "link.sidebar.journal",
+                isSelected: selectedScreen == .journal
             ) {
-                selectScreen(.counter)
+                selectScreen(.journal)
             }
 
             SidebarLink(
-                title: "Todos",
-                identifier: "link.sidebar.todo",
-                isSelected: selectedScreen == .todo
+                title: "Tasks",
+                identifier: "link.sidebar.tasks",
+                isSelected: selectedScreen == .tasks
             ) {
-                selectScreen(.todo)
+                selectScreen(.tasks)
             }
 
             Spacer()
@@ -86,11 +96,11 @@ struct ScreenContent: View {
 
     @ViewBuilder var body: some View {
         switch screen {
-        case .counter:
-            CounterScreen(store: store)
-        case .todo:
-            TodoScreen(store: store)
-        case .search:
+        case .journal:
+            JournalScreen(store: store)
+        case .tasks:
+            TasksScreen(store: store)
+        case .outliner:
             EmptyView()
         }
     }
@@ -104,7 +114,13 @@ private struct SidebarMainPage: View {
     var body: some View {
         NavigationStack {
             ScreenContent(screen: selectedScreen, store: store)
-                .navigationTitle(selectedScreen == .counter ? "Counter" : "Todos")
+                #if SKIP
+                .padding(.top, 56)
+                #endif
+                .navigationTitle(selectedScreen == .journal ? "Journals" : "Tasks")
+                #if SKIP
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button {
@@ -293,38 +309,7 @@ private struct SidebarContainerView: View {
     #endif
 }
 
-private struct CounterScreen: View {
-    let store: OCamlDemoStore
-
-    var body: some View {
-        VStack(spacing: 16) {
-            CoreErrorView(error: store.lastError)
-            Text("\(store.snapshot?.count ?? 0)")
-                .font(.largeTitle)
-                .accessibilityIdentifier("label.counter.value")
-            HStack(spacing: 12) {
-                Button("Decrement") {
-                    store.dispatch(screen: .counter, action: "decrement")
-                }
-                .accessibilityIdentifier("button.counter.decrement")
-                Button("Increment") {
-                    store.dispatch(screen: .counter, action: "increment")
-                }
-                .accessibilityIdentifier("button.counter.increment")
-            }
-            Button("Reset") {
-                store.dispatch(screen: .counter, action: "reset")
-            }
-            .accessibilityIdentifier("button.counter.reset")
-        }
-        .padding()
-        .task {
-            store.load(.counter)
-        }
-    }
-}
-
-private struct TodoScreen: View {
+private struct TasksScreen: View {
     let store: OCamlDemoStore
 
     var body: some View {
@@ -335,56 +320,184 @@ private struct TodoScreen: View {
                     "New task",
                     text: Binding(
                         get: {
-                            store.snapshot?.screen == .todo
+                            store.snapshot?.screen == .tasks
                                 ? store.snapshot?.draft ?? ""
                                 : ""
                         },
                         set: { draft in
                             store.dispatch(
-                                screen: .todo,
+                                screen: .tasks,
                                 action: "setDraft",
                                 payload: draft
                             )
                         }
                     )
                 )
-                .accessibilityIdentifier("field.todo.draft")
+                .accessibilityIdentifier("field.tasks.draft")
                 Button("Add") {
-                    store.dispatch(screen: .todo, action: "add")
+                    store.dispatch(screen: .tasks, action: "add")
                 }
-                .accessibilityIdentifier("button.todo.add")
+                .accessibilityIdentifier("button.tasks.add")
             }
             .padding(.horizontal)
 
-            List(store.snapshot?.screen == .todo ? store.snapshot?.items ?? [] : []) {
-                todo in
+            List(store.snapshot?.screen == .tasks ? store.snapshot?.items ?? [] : []) {
+                task in
                 HStack {
-                    Button(todo.completed ? "Completed" : "Active") {
+                    Button(task.completed ? "Completed" : "Active") {
                         store.dispatch(
-                            screen: .todo,
+                            screen: .tasks,
                             action: "toggle",
-                            payload: "\(todo.id)"
+                            payload: "\(task.id)"
                         )
                     }
-                    .accessibilityIdentifier("button.todo.toggle.\(todo.id)")
-                    Text(todo.title)
+                    .accessibilityIdentifier("button.tasks.toggle.\(task.id)")
+                    Text(task.title)
                     Spacer()
                     Button("Delete") {
                         store.dispatch(
-                            screen: .todo,
+                            screen: .tasks,
                             action: "delete",
-                            payload: "\(todo.id)"
+                            payload: "\(task.id)"
                         )
                     }
-                    .accessibilityIdentifier("button.todo.delete.\(todo.id)")
+                    .accessibilityIdentifier("button.tasks.delete.\(task.id)")
                 }
             }
         }
         .task {
-            store.load(.todo)
+            store.load(.tasks)
         }
     }
 }
+
+#if os(iOS) || SKIP
+private struct JournalScreen: View {
+    @State private var bridge: JournalWebBridge
+
+    init(store: OCamlDemoStore) {
+        _bridge = State(initialValue: JournalWebBridge(store: store))
+    }
+
+    var body: some View {
+        WebView(
+            configuration: bridge.configuration,
+            navigator: bridge.navigator,
+            url: URL(string: "ocaml-demo://bundle/index.html")!
+        )
+        .accessibilityIdentifier("webview.journal")
+    }
+}
+
+@MainActor
+private final class JournalWebBridge: WebViewScriptMessageDelegate {
+    let configuration: WebEngineConfiguration
+    let navigator: WebViewNavigator
+    private let store: OCamlDemoStore
+
+    init(store: OCamlDemoStore) {
+        self.store = store
+        self.navigator = WebViewNavigator()
+        self.configuration = WebEngineConfiguration(
+            allowsBackForwardNavigationGestures: false,
+            allowsPullToRefresh: false,
+            scriptMessageHandlerNames: ["native"],
+            schemeHandlers: [
+                "ocaml-demo": BundleURLSchemeHandler(
+                    bundle: Bundle.module,
+                    subdirectory: "JournalWeb"
+                )
+            ]
+        )
+        self.configuration.scriptMessageDelegate = self
+    }
+
+    func webEngine(
+        _ webEngine: WebEngine,
+        didReceiveScriptMessage message: WebViewScriptMessage
+    ) {
+        guard message.name == "native",
+              let data = message.bodyJSON.data(using: .utf8),
+              let command = try? JSONDecoder().decode(JournalWebCommand.self, from: data)
+        else {
+            return
+        }
+
+        switch command.action {
+        case "ready":
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            store.dispatch(
+                screen: .journal,
+                action: "ensureToday",
+                payload: formatter.string(from: Date())
+            )
+        case "showJournals":
+            store.load(.journal)
+        case "openJournal":
+            guard let id = command.id else { return }
+            store.dispatch(screen: .journal, action: "open", payload: "\(id)")
+            store.load(.outliner)
+        case "setContent", "insertSibling", "indent", "outdent":
+            guard let id = command.id,
+                  let payload = try? JSONEncoder().encode(
+                    OutlinerCommandPayload(id: id, content: command.content)
+                  ),
+                  let payloadJSON = String(data: payload, encoding: .utf8)
+            else {
+                return
+            }
+            store.dispatch(
+                screen: .outliner,
+                action: command.action,
+                payload: payloadJSON
+            )
+        default:
+            return
+        }
+        publishSnapshot()
+    }
+
+    private func publishSnapshot() {
+        guard let snapshot = store.snapshot,
+              let data = try? JSONEncoder().encode(snapshot)
+        else {
+            return
+        }
+        let base64 = data.base64EncodedString()
+        Task { @MainActor in
+            _ = try? await navigator.evaluateJavaScript(
+                """
+                window.dispatchEvent(
+                  new CustomEvent("ocamlDemoSnapshot", {
+                    detail: window.ocamlDemoDecodeBase64Utf8("\(base64)")
+                  })
+                );
+                """
+            )
+        }
+    }
+}
+
+private struct JournalWebCommand: Decodable {
+    let action: String
+    let id: Int?
+    let content: String?
+}
+
+private struct OutlinerCommandPayload: Encodable {
+    let id: Int
+    let content: String?
+}
+#else
+private struct JournalScreen: View {
+    let store: OCamlDemoStore
+
+    var body: some View {
+        Text("Journals are available on iOS and Android")
+    }
+}
+#endif
 
 private struct CoreErrorView: View {
     let error: OCamlDemoCoreError?

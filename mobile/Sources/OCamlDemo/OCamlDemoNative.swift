@@ -40,6 +40,15 @@ public struct OCamlDemoAppView: View {
     }
 
     public var body: some View {
-        OCamlDemoView(call: OCamlDemoCore.shared.ocaml_demo_call)
+        OCamlDemoView(
+            call: OCamlDemoCore.shared.ocaml_demo_call,
+            databasePath: databasePath
+        )
+    }
+
+    private var databasePath: String {
+        URL.documentsDirectory
+            .appendingPathComponent("ocaml-demo.sqlite")
+            .path
     }
 }

@@ -1,6 +1,7 @@
 (library
  (name ocaml_demo_model)
  (modules ocaml_demo_model)
+ (libraries datascript_ocaml)
  (modes :standard melange))
 
 (library
@@ -11,5 +12,5 @@
 (library
  (name ocaml_demo_rpc)
  (modules ocaml_demo_rpc)
- (libraries ocaml_demo_json ocaml_demo_model)
+ (libraries ocaml_demo_json ocaml_demo_model datascript_ocaml)
  (modes :standard melange))

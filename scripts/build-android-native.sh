@@ -32,6 +32,7 @@ jni_dir="$repo_root/mobile/Android/app/src/main/jniLibs/$android_abi"
 library="$build_dir/libocaml_demo_core.so"
 
 "$repo_root/scripts/bootstrap-android-ocaml.sh" >/dev/null
+"$repo_root/scripts/build-journal-web.sh"
 
 if [[ -d ${ANDROID_NDK_HOME:-} ]]; then
   ndk_root=$ANDROID_NDK_HOME
@@ -60,21 +61,34 @@ ocamlopt="$target_prefix/bin/ocamlopt.opt"
 ocaml_lib="$target_prefix/lib/ocaml"
 
 mkdir -p "$build_dir" "$jni_dir"
+"$repo_root/scripts/build-mobile-ocaml-deps.sh" \
+  "$target_prefix" \
+  "$build_dir"
+dependency_dir="$build_dir/mobile-ocaml-deps"
+dependency_objects=()
+while IFS= read -r object; do
+  dependency_objects+=("$object")
+done <"$dependency_dir/link-objects.txt"
+sqlite_stub_source=$(<"$dependency_dir/sqlite-stub-source.txt")
+sqlite_source_dir=$("$repo_root/scripts/build-android-sqlite.sh")
+
 cd "$build_dir"
 
-"$ocamlopt" -c -o ocaml_demo_model.cmi \
+"$ocamlopt" -I "$dependency_dir" -c -o ocaml_demo_model.cmi \
   "$repo_root/examples/shared/ocaml_demo_model.mli"
-"$ocamlopt" -I . -c -o ocaml_demo_model.cmx \
+"$ocamlopt" -I . -I "$dependency_dir" -c -o ocaml_demo_model.cmx \
   "$repo_root/examples/shared/ocaml_demo_model.ml"
 "$ocamlopt" -I . -c -o ocaml_demo_json.cmi \
   "$repo_root/examples/shared/ocaml_demo_json.mli"
 "$ocamlopt" -I . -c -o ocaml_demo_json.cmx \
   "$repo_root/examples/shared/ocaml_demo_json.ml"
-"$ocamlopt" -I . -c -o ocaml_demo_rpc.cmi \
+"$ocamlopt" -I . -I "$dependency_dir" -c -o ocaml_demo_rpc.cmi \
   "$repo_root/examples/shared/ocaml_demo_rpc.mli"
-"$ocamlopt" -I . -c -o ocaml_demo_rpc.cmx \
+"$ocamlopt" -I . -I "$dependency_dir" -c -o ocaml_demo_rpc.cmx \
   "$repo_root/examples/shared/ocaml_demo_rpc.ml"
-"$ocamlopt" -I . -c -o ocaml_demo_mobile_entry.cmx \
+"$ocamlopt" -I . -I "$dependency_dir" -c -o ocaml_demo_sqlite.cmx \
+  "$repo_root/mobile/core/ocaml_demo_sqlite.ml"
+"$ocamlopt" -I . -I "$dependency_dir" -c -o ocaml_demo_mobile_entry.cmx \
   "$repo_root/mobile/core/ocaml_demo_mobile_entry.ml"
 
 "$ocamlopt" \
@@ -83,9 +97,13 @@ cd "$build_dir"
   -output-complete-obj \
   -linkall \
   -o ocaml_demo_runtime.o \
+  str.cmxa \
+  unix.cmxa \
+  "${dependency_objects[@]}" \
   ocaml_demo_model.cmx \
   ocaml_demo_json.cmx \
   ocaml_demo_rpc.cmx \
+  ocaml_demo_sqlite.cmx \
   ocaml_demo_mobile_entry.cmx
 
 "$ndk_bin/clang" \
@@ -97,11 +115,31 @@ cd "$build_dir"
 
 "$ndk_bin/clang" \
   --target="$target" \
+  -fPIC \
+  -I "$ocaml_lib" \
+  -I "$sqlite_source_dir" \
+  -c "$sqlite_stub_source" \
+  -o datascript_sqlite_stubs.o
+
+"$ndk_bin/clang" \
+  --target="$target" \
+  -fPIC \
+  -O2 \
+  -D_FILE_OFFSET_BITS=64 \
+  -DSQLITE_OMIT_LOAD_EXTENSION \
+  -DSQLITE_THREADSAFE=1 \
+  -c "$sqlite_source_dir/sqlite3.c" \
+  -o sqlite3.o
+
+"$ndk_bin/clang" \
+  --target="$target" \
   -shared \
   -Wl,-soname,libocaml_demo_core.so \
   -o "$library" \
   ocaml_demo_runtime.o \
   ocaml_demo_core_ffi.o \
+  datascript_sqlite_stubs.o \
+  sqlite3.o \
   -lm \
   -ldl \
   -pthread

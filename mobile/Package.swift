@@ -12,6 +12,7 @@ let package = Package(
         .package(url: "https://source.skip.tools/skip.git", from: "1.9.5"),
         .package(url: "https://source.skip.tools/skip-ui.git", from: "1.0.0"),
         .package(url: "https://source.skip.tools/skip-ffi.git", from: "1.0.0"),
+        .package(url: "https://source.skip.tools/skip-web.git", from: "0.11.3"),
     ],
     targets: [
         .target(
@@ -20,7 +21,9 @@ let package = Package(
                 "OCamlCoreABI",
                 .product(name: "SkipUI", package: "skip-ui"),
                 .product(name: "SkipFFI", package: "skip-ffi"),
+                .product(name: "SkipWeb", package: "skip-web"),
             ],
+            resources: [.copy("Resources/JournalWeb")],
             plugins: [.plugin(name: "skipstone", package: "skip")]
         ),
         .target(

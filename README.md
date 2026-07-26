@@ -1,7 +1,7 @@
 # ocaml-demo
 
-`ocaml-demo` keeps all Counter, Todo, and Search state transitions in one OCaml
-model while each platform owns only its UI.
+`ocaml-demo` keeps journal, outliner, and task state transitions in one
+DataScript-backed OCaml model while each platform owns only its UI.
 
 ```text
 examples/shared/ocaml_demo_model.ml
@@ -33,9 +33,11 @@ written in OCaml and compiled to React calls by Melange.
 - `scripts/`: OCaml 5.5 cross-toolchain, native app, and architecture checks.
 - `docs/`: current architecture and platform build instructions.
 
-The former platform-specific OCaml UI-tree frameworks and demo applications
-have been removed. Platform code must not define business actions or duplicate
-state transitions.
+Native apps persist the DataScript storage protocol to SQLite. The browser uses
+the same OCaml model and persists it through SQLite-Wasm OPFS. Dependencies are
+resolved from their upstream GitHub repositories; source code is not vendored.
+
+Platform code must not define business actions or duplicate state transitions.
 
 ## Checks
 

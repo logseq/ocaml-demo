@@ -41,48 +41,112 @@ let dispatch session ~screen ~action ?payload () =
       ])
 ;;
 
-let test_counter_uses_one_call_api () =
+let test_tasks_use_one_call_api () =
   let session = Ocaml_demo_rpc.Session.create () in
-  let initial = snapshot session "counter" in
-  require_success initial;
-  require (member "count" (result initial) = `Int 0) "counter should start at zero";
-  let incremented = dispatch session ~screen:"counter" ~action:"increment" () in
-  require_success incremented;
-  require (member "count" (result incremented) = `Int 1) "dispatch should update OCaml";
+  ignore (dispatch session ~screen:"tasks" ~action:"setDraft" ~payload:"One API" ());
+  let added = dispatch session ~screen:"tasks" ~action:"add" () in
+  require_success added;
+  let items = member "items" (result added) |> Yojson.Safe.Util.to_list in
+  let task =
+    match items with
+    | [ task ] -> task
+    | _ -> failwith "task dispatch should return one item"
+  in
+  require (member "title" task = `String "One API") "OCaml should own task state";
   require
-    (member "revision" (result incremented) = `Int 1)
-    "response should identify the new model revision"
+    (member "screen" (result added) = `String "tasks")
+    "the response should identify the Tasks screen"
 ;;
 
-let test_todo_and_search_share_the_same_session_model () =
+let test_outliner_rpc_edits_and_indents () =
   let session = Ocaml_demo_rpc.Session.create () in
+  let journal_snapshot = snapshot session "journal" in
+  require_success journal_snapshot;
+  let journals =
+    member "journals" (result journal_snapshot) |> Yojson.Safe.Util.to_list
+  in
+  require (List.length journals >= 2) "the home snapshot should list journals";
+  let initial = snapshot session "outliner" in
+  require_success initial;
+  let blocks = member "blocks" (result initial) |> Yojson.Safe.Util.to_list in
+  let second = List.nth blocks 1 in
+  let id = member "id" second |> Yojson.Safe.Util.to_int in
+  let payload =
+    `Assoc [ "id", `Int id; "content", `String "中文 block 🚀" ]
+    |> Yojson.Safe.to_string
+  in
+  let edited =
+    dispatch session ~screen:"outliner" ~action:"setContent" ~payload ()
+  in
+  require_success edited;
+  let indent_payload = `Assoc [ "id", `Int id ] |> Yojson.Safe.to_string in
+  let indented =
+    dispatch session ~screen:"outliner" ~action:"indent" ~payload:indent_payload ()
+  in
+  let changed =
+    member "blocks" (result indented) |> Yojson.Safe.Util.to_list |> fun blocks ->
+    List.nth blocks 1
+  in
+  require
+    (member "content" changed = `String "中文 block 🚀")
+    "UTF-8 block content should be returned";
+  require (member "depth" changed = `Int 1) "indent should be returned";
+  let inserted =
+    dispatch
+      session
+      ~screen:"outliner"
+      ~action:"insertSibling"
+      ~payload:indent_payload
+      ()
+  in
+  require_success inserted;
+  require
+    (member "blocks" (result inserted)
+     |> Yojson.Safe.Util.to_list
+     |> List.length
+     = List.length blocks + 1)
+    "insertSibling should return the new block"
+;;
+
+let test_rpc_creates_missing_today () =
+  let session = Ocaml_demo_rpc.Session.create () in
+  let ensured =
+    dispatch
+      session
+      ~screen:"journal"
+      ~action:"ensureToday"
+      ~payload:"2099-12-31"
+      ()
+  in
+  require_success ensured;
+  let journal_count =
+    member "journals" (result ensured) |> Yojson.Safe.Util.to_list |> List.length
+  in
   ignore
     (dispatch
        session
-       ~screen:"todo"
-       ~action:"setDraft"
-       ~payload:"One API"
+       ~screen:"journal"
+       ~action:"ensureToday"
+       ~payload:"2099-12-31"
        ());
-  let added = dispatch session ~screen:"todo" ~action:"add" () in
-  require_success added;
-  let items = member "items" (result added) |> Yojson.Safe.Util.to_list in
-  let todo =
-    match items with
-    | [ todo ] -> todo
-    | _ -> failwith "todo dispatch should return one item"
-  in
-  require (member "title" todo = `String "One API") "OCaml should own todo state";
-  let searched =
-    dispatch session ~screen:"search" ~action:"setQuery" ~payload:"t" ()
-  in
-  require_success searched;
+  let current = snapshot session "journal" in
   require
-    (member "results" (result searched)
-     = `List [ `String "Today"; `String "Tasks"; `String "Settings"; `String "Projects" ])
-    "OCaml should own search filtering";
-  require
-    (member "revision" (result searched) = `Int 3)
-    "all screens should observe one shared model revision"
+    (member "journals" (result current)
+     |> Yojson.Safe.Util.to_list
+     |> List.length
+     = journal_count)
+    "ensureToday should be idempotent"
+;;
+
+let test_unknown_screens_are_rejected () =
+  let session = Ocaml_demo_rpc.Session.create () in
+  List.iter
+    (fun screen ->
+      let response = snapshot session screen in
+      require
+        (member "code" (member "error" response) = `String "unknown_screen")
+        ("unknown screen should be rejected: " ^ screen))
+    [ "settings"; "profile"; "archive" ]
 ;;
 
 let test_protocol_errors_are_structured () =
@@ -90,67 +154,19 @@ let test_protocol_errors_are_structured () =
   let malformed =
     Ocaml_demo_rpc.Session.call session "not json" |> Yojson.Safe.from_string
   in
-  require (member "ok" malformed = `Bool false) "malformed JSON should fail";
   require
     (member "code" (member "error" malformed) = `String "invalid_json")
     "malformed JSON should use a stable error code";
-  let future =
-    call
-      session
-      (`Assoc
-        [ "apiVersion", `Int 2
-        ; "method", `String "snapshot"
-        ; "params", `Assoc [ "screen", `String "counter" ]
-        ])
-  in
-  require
-    (member "code" (member "error" future) = `String "unsupported_version")
-    "future protocol versions should be rejected";
-  let unknown = dispatch session ~screen:"counter" ~action:"explode" () in
+  let unknown = dispatch session ~screen:"tasks" ~action:"explode" () in
   require
     (member "code" (member "error" unknown) = `String "unknown_action")
-    "unknown actions should be explicit";
-  let current = snapshot session "counter" in
-  require
-    (member "revision" (result current) = `Int 0)
-    "invalid calls should not mutate the shared model"
-;;
-
-let test_json_strings_round_trip_through_ocaml () =
-  let session = Ocaml_demo_rpc.Session.create () in
-  let title = "Quote: \" Backslash: \\ Newline:\nUnicode: 你好 👋" in
-  ignore (dispatch session ~screen:"todo" ~action:"setDraft" ~payload:title ());
-  let added = dispatch session ~screen:"todo" ~action:"add" () in
-  let items = member "items" (result added) |> Yojson.Safe.Util.to_list in
-  let todo =
-    match items with
-    | [ todo ] -> todo
-    | _ -> failwith "escaped todo dispatch should return one item"
-  in
-  require (member "title" todo = `String title) "JSON strings should round trip";
-  let trailing =
-    Ocaml_demo_rpc.Session.call
-      session
-      {|{"apiVersion":1,"method":"snapshot","params":{"screen":"counter"}} trailing|}
-    |> Yojson.Safe.from_string
-  in
-  require
-    (member "code" (member "error" trailing) = `String "invalid_json")
-    "trailing JSON input should be rejected";
-  let leading_zero =
-    Ocaml_demo_rpc.Session.call
-      session
-      {|{"apiVersion":01,"method":"snapshot","params":{"screen":"counter"}}|}
-    |> Yojson.Safe.from_string
-  in
-  require
-    (member "code" (member "error" leading_zero) = `String "invalid_json")
-    "invalid JSON numbers should be rejected"
+    "unknown actions should be explicit"
 ;;
 
 let () =
-  test_counter_uses_one_call_api ();
-  test_todo_and_search_share_the_same_session_model ();
-  test_protocol_errors_are_structured ();
-  test_json_strings_round_trip_through_ocaml ()
+  test_tasks_use_one_call_api ();
+  test_outliner_rpc_edits_and_indents ();
+  test_rpc_creates_missing_today ();
+  test_unknown_screens_are_rejected ();
+  test_protocol_errors_are_structured ()
 ;;

@@ -1,29 +1,44 @@
-type todo =
+type task =
   { id : int
   ; title : string
   ; completed : bool
   }
 
+type block =
+  { id : int
+  ; content : string
+  ; depth : int
+  }
+
+type journal =
+  { id : int
+  ; title : string
+  }
+
 type t
 
 type action =
-  | Increment
-  | Decrement
-  | Reset_counter
-  | Set_todo_draft of string
-  | Add_todo
-  | Toggle_todo of int
-  | Delete_todo of int
-  | Set_search_query of string
+  | Set_task_draft of string
+  | Add_task
+  | Toggle_task of int
+  | Delete_task of int
+  | Ensure_today of string
+  | Select_journal of int
+  | Set_block_content of int * string
+  | Add_sibling_block of int
+  | Indent_block of int
+  | Outdent_block of int
 
 type error =
-  | Unknown_todo of int
+  | Unknown_task of int
+  | Unknown_journal of int
+  | Unknown_block of int
 
-val initial : t
-val update : t -> action -> (t, error) result
+val create : ?storage:Datascript.storage -> unit -> t
+val update : t -> action -> (unit, error) result
 val revision : t -> int
-val count : t -> int
-val todo_draft : t -> string
-val todos : t -> todo list
-val search_query : t -> string
-val search_results : t -> string list
+val task_draft : t -> string
+val tasks : t -> task list
+val journals : t -> journal list
+val selected_journal_id : t -> int
+val blocks : t -> block list

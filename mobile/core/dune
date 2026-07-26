@@ -1,8 +1,8 @@
 (executable
  (name ocaml_demo_mobile_entry)
- (modules ocaml_demo_mobile_entry)
+ (modules ocaml_demo_mobile_entry ocaml_demo_sqlite)
  (modes exe object shared_object)
- (libraries ocaml_demo_rpc)
+ (libraries ocaml_demo_rpc datascript-ocaml-native datascript-ocaml-native.sqlite)
  (foreign_stubs
   (language c)
   (names ocaml_demo_core_ffi))

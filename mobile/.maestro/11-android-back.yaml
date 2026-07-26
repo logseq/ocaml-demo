@@ -11,7 +11,7 @@ appId: com.logseq.ocamldemo
 - assertNotVisible:
     id: "button.sidebar.dismiss"
 - assertVisible:
-    id: "label.counter.value"
+    id: "field.tasks.draft"
 - pressKey: BACK
 - assertNotVisible:
     id: "button.sidebar"

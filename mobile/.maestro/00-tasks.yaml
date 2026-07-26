@@ -1,0 +1,11 @@
+appId: com.logseq.ocamldemo
+---
+- launchApp
+- assertVisible:
+    id: "field.tasks.draft"
+- tapOn:
+    id: "field.tasks.draft"
+- inputText: "Stored task"
+- tapOn:
+    id: "button.tasks.add"
+- assertVisible: "Stored task"

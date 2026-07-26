@@ -84,6 +84,6 @@ Start an ARM64 emulator, build the native library and APK, then run:
 scripts/test-mobile-android-emulator.sh
 ```
 
-The test installs the APK, launches `OCaml Demo`, taps the generated Compose
-counter button, and verifies that the shared OCaml reducer changes the displayed
-value from `0` to `1`.
+The test installs the APK, launches `OCaml Demo`, verifies the journal WebView,
+opens the native Tasks screen through the sidebar, and checks Android back
+navigation.

@@ -2,10 +2,14 @@
  (target dist)
  (alias web-demo)
  (module_systems es6)
- (modules main)
+ (modules main ocaml_demo_web_storage)
  (preprocess
   (pps melange.ppx))
- (libraries ocaml_demo_model)
+ (libraries
+  ocaml_demo_json
+  ocaml_demo_model
+  datascript-ocaml-melange
+  datascript-ocaml-melange.storage)
  (promote (until-clean))
 (enabled_if
   (= %{context_name} default)))
