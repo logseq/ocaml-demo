@@ -83,6 +83,7 @@ let test_outliner_rpc_edits_and_indents () =
   let indented =
     dispatch session ~screen:"outliner" ~action:"indent" ~payload:indent_payload ()
   in
+  require_success indented;
   let changed =
     member "blocks" (result indented) |> Yojson.Safe.Util.to_list |> fun blocks ->
     List.nth blocks 1
@@ -91,6 +92,17 @@ let test_outliner_rpc_edits_and_indents () =
     (member "content" changed = `String "中文 block 🚀")
     "UTF-8 block content should be returned";
   require (member "depth" changed = `Int 1) "indent should be returned";
+  let outdented =
+    dispatch session ~screen:"outliner" ~action:"outdent" ~payload:indent_payload ()
+  in
+  require_success outdented;
+  let restored =
+    member "blocks" (result outdented) |> Yojson.Safe.Util.to_list |> fun blocks ->
+    List.nth blocks 1
+  in
+  require
+    (member "depth" restored = `Int 0)
+    "outdent should be returned in the same RPC response";
   let inserted =
     dispatch
       session

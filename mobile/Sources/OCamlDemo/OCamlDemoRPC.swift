@@ -5,6 +5,15 @@ public enum OCamlDemoScreen: String, Codable {
     case journal
     case tasks
     case outliner
+
+    public var navigationTitle: String {
+        switch self {
+        case .journal, .outliner:
+            "Journals"
+        case .tasks:
+            "Tasks"
+        }
+    }
 }
 
 public struct OCamlDemoJournal: Codable, Identifiable {

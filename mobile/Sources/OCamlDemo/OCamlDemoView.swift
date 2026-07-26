@@ -36,8 +36,9 @@ struct SidebarContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("OCaml Demo")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+                .font(.headline)
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 .padding(.bottom, 20)
 
             SidebarLink(
@@ -59,10 +60,11 @@ struct SidebarContent: View {
             Spacer()
         }
         .padding(.horizontal, 24)
-        #if !SKIP
+        #if SKIP
+        .padding(.top, 12)
+        #else
         .safeAreaPadding(.top)
         #endif
-        .padding(.top, 32)
     }
 }
 
@@ -80,9 +82,14 @@ private struct SidebarLink: View {
                     .fontWeight(isSelected ? .semibold : .regular)
                 Spacer()
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
-            .background(isSelected ? Color.accentColor.opacity(0.14) : Color.clear)
+            .background(
+                isSelected
+                    ? Color.accentColor.opacity(0.14)
+                    : Color.black.opacity(0.001)
+            )
             .clipShape(RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
@@ -117,8 +124,8 @@ private struct SidebarMainPage: View {
                 #if SKIP
                 .padding(.top, 56)
                 #endif
-                .navigationTitle(selectedScreen == .journal ? "Journals" : "Tasks")
-                #if SKIP
+                .navigationTitle(selectedScreen.navigationTitle)
+                #if os(iOS) || SKIP
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
                 .toolbar {
@@ -128,6 +135,7 @@ private struct SidebarMainPage: View {
                         } label: {
                             SidebarMenuIcon()
                         }
+                        .tint(Color.primary)
                         .accessibilityLabel("Open sidebar")
                         .accessibilityIdentifier("button.sidebar")
                     }
@@ -158,7 +166,8 @@ private struct SidebarMenuIcon: View {
             Capsule()
                 .frame(width: 20, height: 2)
         }
-        .frame(width: 24, height: 24)
+        .frame(width: 44, height: 44)
+        .background(Color.black.opacity(0.001))
         .foregroundStyle(.primary)
     }
 }
@@ -455,26 +464,26 @@ private final class JournalWebBridge: WebViewScriptMessageDelegate {
         default:
             return
         }
-        publishSnapshot()
+        publishSnapshot(to: webEngine)
     }
 
-    private func publishSnapshot() {
+    private func publishSnapshot(to webEngine: WebEngine) {
         guard let snapshot = store.snapshot,
               let data = try? JSONEncoder().encode(snapshot)
         else {
             return
         }
         let base64 = data.base64EncodedString()
+        let script =
+            """
+            window.dispatchEvent(
+              new CustomEvent("ocamlDemoSnapshot", {
+                detail: window.ocamlDemoDecodeBase64Utf8("\(base64)")
+              })
+            );
+            """
         Task { @MainActor in
-            _ = try? await navigator.evaluateJavaScript(
-                """
-                window.dispatchEvent(
-                  new CustomEvent("ocamlDemoSnapshot", {
-                    detail: window.ocamlDemoDecodeBase64Utf8("\(base64)")
-                  })
-                );
-                """
-            )
+            _ = try? await webEngine.evaluate(js: script)
         }
     }
 }

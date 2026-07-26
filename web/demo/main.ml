@@ -147,6 +147,7 @@ let rec render () =
       [%mel.obj
         { className = class_name
         ; title
+        ; onPointerDown = (fun event -> prevent_default event)
         ; onClick = (fun _ -> on_click ())
         }]
       [ icon ]

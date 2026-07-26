@@ -3,6 +3,11 @@ import OCamlDemo
 
 @MainActor
 final class OCamlDemoTests: XCTestCase {
+    func testScreenNavigationTitles() {
+        XCTAssertEqual("Journals", OCamlDemoScreen.journal.navigationTitle)
+        XCTAssertEqual("Tasks", OCamlDemoScreen.tasks.navigationTitle)
+    }
+
     func testStoreLoadsJournalListThroughSingleCall() {
         let transport = FakeTransport(
             responses: [
@@ -89,6 +94,34 @@ final class OCamlDemoTests: XCTestCase {
         XCTAssertNil(store.lastError, store.lastError?.message ?? "")
         XCTAssertEqual("中文 block 🚀", store.snapshot?.blocks?[0].content)
         XCTAssertTrue(transport.requests[0].contains(#""action":"setContent""#))
+    }
+
+    func testStoreDispatchesIndentAndOutdentWithBlockID() {
+        let response =
+            """
+            {
+              "apiVersion": 1,
+              "ok": true,
+              "result": {
+                "revision": 4,
+                "screen": "outliner",
+                "blocks": [{"id": 7, "content": "Block", "depth": 1}]
+              },
+              "error": null
+            }
+            """
+        let transport = FakeTransport(responses: [response, response])
+        let store = OCamlDemoStore(call: transport.call)
+        let payload = #"{"id":7}"#
+
+        store.dispatch(screen: .outliner, action: "indent", payload: payload)
+        store.dispatch(screen: .outliner, action: "outdent", payload: payload)
+
+        XCTAssertEqual(2, transport.requests.count)
+        XCTAssertTrue(transport.requests[0].contains(#""action":"indent""#))
+        XCTAssertTrue(transport.requests[0].contains(#"\"id\":7"#))
+        XCTAssertTrue(transport.requests[1].contains(#""action":"outdent""#))
+        XCTAssertTrue(transport.requests[1].contains(#"\"id\":7"#))
     }
 
     func testStorePublishesStructuredCoreError() {

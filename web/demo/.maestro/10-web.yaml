@@ -20,3 +20,5 @@ url: ${WEB_URL}
 - pressKey: ENTER
 - inputText: "Sibling block"
 - assertVisible: "Sibling block"
+- tapOn: "Indent"
+- tapOn: "Outdent"

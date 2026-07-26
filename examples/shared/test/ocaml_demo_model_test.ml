@@ -74,6 +74,27 @@ let test_outliner_edit_indent_and_outdent () =
   require (outdented.depth = first.depth) "outdent should restore the parent level"
 ;;
 
+let test_indent_and_outdent_move_the_whole_subtree () =
+  let model = Model.create () in
+  let initial = Model.blocks model in
+  let parent = List.nth initial 1 in
+  let child = List.nth initial 2 in
+  update_exn model (Model.Indent_block parent.id);
+  update_exn model (Model.Indent_block child.id);
+  update_exn model (Model.Indent_block child.id);
+  let nested = Model.blocks model in
+  require ((List.nth nested 1).depth = 1) "the parent should be indented";
+  require ((List.nth nested 2).depth = 2) "the child should remain nested";
+  update_exn model (Model.Outdent_block parent.id);
+  let outdented = Model.blocks model in
+  require ((List.nth outdented 1).depth = 0) "outdent should move the parent";
+  require ((List.nth outdented 2).depth = 1) "outdent should move its child";
+  update_exn model (Model.Indent_block parent.id);
+  let restored = Model.blocks model in
+  require ((List.nth restored 1).depth = 1) "indent should move the parent";
+  require ((List.nth restored 2).depth = 2) "indent should move its child"
+;;
+
 let test_enter_adds_sibling_after_subtree () =
   let model = Model.create () in
   let initial = Model.blocks model in
@@ -167,6 +188,7 @@ let () =
   test_tasks_persist_to_sqlite ();
   test_empty_task_is_a_no_op ();
   test_outliner_edit_indent_and_outdent ();
+  test_indent_and_outdent_move_the_whole_subtree ();
   test_enter_adds_sibling_after_subtree ();
   test_each_journal_has_its_own_outliner ();
   test_missing_today_creates_journal_and_first_block ();

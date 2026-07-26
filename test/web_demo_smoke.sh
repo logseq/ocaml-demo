@@ -12,6 +12,7 @@ grep -q "Indent_block" "$main"
 grep -q "insertSibling" "$main"
 grep -q "editor-toolbar" "$main"
 grep -q "M19 12H5" "$main"
+grep -q "onPointerDown" "$main"
 if grep -q '\\xe2\\x86' "$main"; then
   echo "Web UI icons must not rely on OCaml UTF-8 byte strings" >&2
   exit 1
