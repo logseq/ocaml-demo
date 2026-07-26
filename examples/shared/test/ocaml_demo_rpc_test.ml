@@ -117,7 +117,30 @@ let test_outliner_rpc_edits_and_indents () =
      |> Yojson.Safe.Util.to_list
      |> List.length
      = List.length blocks + 1)
-    "insertSibling should return the new block"
+    "insertSibling should return the new block";
+  let inserted_blocks =
+    member "blocks" (result inserted) |> Yojson.Safe.Util.to_list
+  in
+  let empty = List.nth inserted_blocks 2 in
+  let empty_id = member "id" empty |> Yojson.Safe.Util.to_int in
+  let delete_payload =
+    `Assoc [ "id", `Int empty_id ] |> Yojson.Safe.to_string
+  in
+  let deleted =
+    dispatch
+      session
+      ~screen:"outliner"
+      ~action:"deleteBlock"
+      ~payload:delete_payload
+      ()
+  in
+  require_success deleted;
+  require
+    (member "blocks" (result deleted)
+     |> Yojson.Safe.Util.to_list
+     |> List.length
+     = List.length blocks)
+    "deleteBlock should return the previous block list"
 ;;
 
 let test_rpc_creates_missing_today () =

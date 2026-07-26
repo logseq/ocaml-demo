@@ -6,6 +6,14 @@ import SkipWeb
 import androidx.activity.compose.BackHandler
 #endif
 
+enum SidebarChromeMetrics {
+    static let iOSHeaderTopPadding: CGFloat = 64
+    static let androidHeaderTopPadding: CGFloat = 12
+    static let menuGlyphWidth: CGFloat = 18
+    static let menuVisualFrame: CGFloat = 24
+    static let minimumHitTarget: CGFloat = 44
+}
+
 public struct OCamlDemoView: View {
     @State private var store: OCamlDemoStore
     @State private var selectedScreen = OCamlDemoScreen.journal
@@ -61,9 +69,9 @@ struct SidebarContent: View {
         }
         .padding(.horizontal, 24)
         #if SKIP
-        .padding(.top, 12)
+        .padding(.top, SidebarChromeMetrics.androidHeaderTopPadding)
         #else
-        .safeAreaPadding(.top)
+        .padding(.top, SidebarChromeMetrics.iOSHeaderTopPadding)
         #endif
     }
 }
@@ -135,7 +143,16 @@ private struct SidebarMainPage: View {
                         } label: {
                             SidebarMenuIcon()
                         }
-                        .tint(Color.primary)
+                        .frame(
+                            width: SidebarChromeMetrics.minimumHitTarget,
+                            height: SidebarChromeMetrics.minimumHitTarget
+                        )
+                        .buttonStyle(.plain)
+                        #if SKIP
+                        .foregroundStyle(Color.primary)
+                        #else
+                        .foregroundStyle(Color(red: 0.10, green: 0.10, blue: 0.12))
+                        #endif
                         .accessibilityLabel("Open sidebar")
                         .accessibilityIdentifier("button.sidebar")
                     }
@@ -160,15 +177,16 @@ private struct SidebarMenuIcon: View {
     var body: some View {
         VStack(spacing: 4) {
             Capsule()
-                .frame(width: 20, height: 2)
+                .frame(width: SidebarChromeMetrics.menuGlyphWidth, height: 2)
             Capsule()
-                .frame(width: 20, height: 2)
+                .frame(width: SidebarChromeMetrics.menuGlyphWidth, height: 2)
             Capsule()
-                .frame(width: 20, height: 2)
+                .frame(width: SidebarChromeMetrics.menuGlyphWidth, height: 2)
         }
-        .frame(width: 44, height: 44)
-        .background(Color.black.opacity(0.001))
-        .foregroundStyle(.primary)
+        .frame(
+            width: SidebarChromeMetrics.menuVisualFrame,
+            height: SidebarChromeMetrics.menuVisualFrame
+        )
     }
 }
 
@@ -231,7 +249,7 @@ private struct SidebarContainerView: View {
                     )
                 )
                 #else
-                .highPriorityGesture(
+                .simultaneousGesture(
                     sidebarDragGesture(
                         baseOffset: baseOffset,
                         sidebarWidth: sidebarWidth
@@ -261,7 +279,7 @@ private struct SidebarContainerView: View {
                 )
             )
             #else
-            .highPriorityGesture(
+            .simultaneousGesture(
                 sidebarDragGesture(
                     baseOffset: baseOffset,
                     sidebarWidth: sidebarWidth
@@ -447,7 +465,7 @@ private final class JournalWebBridge: WebViewScriptMessageDelegate {
             guard let id = command.id else { return }
             store.dispatch(screen: .journal, action: "open", payload: "\(id)")
             store.load(.outliner)
-        case "setContent", "insertSibling", "indent", "outdent":
+        case "setContent", "insertSibling", "deleteBlock", "indent", "outdent":
             guard let id = command.id,
                   let payload = try? JSONEncoder().encode(
                     OutlinerCommandPayload(id: id, content: command.content)

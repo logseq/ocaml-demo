@@ -49,3 +49,16 @@
    /bin/sh
    web_demo_smoke.sh
    ../web/demo/dist/web/demo/main.js)))
+
+(rule
+ (alias runtest)
+ (deps
+  mobile_ui_smoke.sh
+  ../mobile/Sources/OCamlDemo/OCamlDemoView.swift
+  ../web/demo/index.html)
+ (action
+  (run
+   /bin/sh
+   mobile_ui_smoke.sh
+   ../mobile/Sources/OCamlDemo/OCamlDemoView.swift
+   ../web/demo/index.html)))

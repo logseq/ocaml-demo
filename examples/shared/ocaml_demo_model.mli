@@ -26,6 +26,7 @@ type action =
   | Select_journal of int
   | Set_block_content of int * string
   | Add_sibling_block of int
+  | Delete_block of int
   | Indent_block of int
   | Outdent_block of int
 

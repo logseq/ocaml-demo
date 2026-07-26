@@ -30,6 +30,7 @@ type action =
   | Select_journal of int
   | Set_block_content of int * string
   | Add_sibling_block of int
+  | Delete_block of int
   | Indent_block of int
   | Outdent_block of int
 
@@ -383,6 +384,14 @@ let rec update model = function
                 , "block/journal"
                 , Int (selected_journal_id model) )
             ]);
+       Ok ())
+  | Delete_block id ->
+    let blocks = blocks model in
+    (match List.find_index (fun (block : block) -> block.id = id) blocks with
+     | None -> Error (Unknown_block id)
+     | Some 0 -> Ok ()
+     | Some _ ->
+       commit model [ RetractEntity (block_ref id) ];
        Ok ())
   | Indent_block id ->
     if not (block_exists model id)

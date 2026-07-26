@@ -114,6 +114,37 @@ let test_enter_adds_sibling_after_subtree () =
     "the new sibling should be inserted after the current block's subtree"
 ;;
 
+let test_backspace_deletes_the_current_block () =
+  let model = Model.create () in
+  let initial = Model.blocks model in
+  let previous = List.hd initial in
+  let current = List.nth initial 1 in
+  require (current.content <> "") "the test block should contain text";
+  update_exn model (Model.Delete_block current.id);
+  let remaining = Model.blocks model in
+  require
+    (List.length remaining = List.length initial - 1)
+    "Backspace at the beginning should delete the current block";
+  require
+    ((List.hd remaining).id = previous.id)
+    "the previous block should remain available for editing"
+;;
+
+let test_backspace_preserves_the_first_block () =
+  let model = Model.create () in
+  let initial = Model.blocks model in
+  let first = List.hd initial in
+  let revision = Model.revision model in
+  update_exn model (Model.Delete_block first.id);
+  require
+    (List.map (fun (block : Model.block) -> block.id) (Model.blocks model)
+     = List.map (fun (block : Model.block) -> block.id) initial)
+    "Backspace must preserve the first block because there is no previous editor";
+  require
+    (Model.revision model = revision)
+    "Backspace on the first block should be a no-op"
+;;
+
 let test_each_journal_has_its_own_outliner () =
   let model = Model.create () in
   let first = List.nth (Model.journals model) 0 in
@@ -190,6 +221,8 @@ let () =
   test_outliner_edit_indent_and_outdent ();
   test_indent_and_outdent_move_the_whole_subtree ();
   test_enter_adds_sibling_after_subtree ();
+  test_backspace_deletes_the_current_block ();
+  test_backspace_preserves_the_first_block ();
   test_each_journal_has_its_own_outliner ();
   test_missing_today_creates_journal_and_first_block ();
   test_outliner_boundaries_are_no_ops ();

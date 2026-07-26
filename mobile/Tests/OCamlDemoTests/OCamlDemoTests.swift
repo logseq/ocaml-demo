@@ -1,8 +1,19 @@
 import XCTest
-import OCamlDemo
+@testable import OCamlDemo
 
 @MainActor
 final class OCamlDemoTests: XCTestCase {
+    func testSidebarTitleAlignsWithTheNavigationHeader() {
+        XCTAssertEqual(64.0, SidebarChromeMetrics.iOSHeaderTopPadding)
+        XCTAssertEqual(12.0, SidebarChromeMetrics.androidHeaderTopPadding)
+    }
+
+    func testSidebarToggleHasACompactGlyphAndAccessibleHitTarget() {
+        XCTAssertEqual(18.0, SidebarChromeMetrics.menuGlyphWidth)
+        XCTAssertEqual(24.0, SidebarChromeMetrics.menuVisualFrame)
+        XCTAssertEqual(44.0, SidebarChromeMetrics.minimumHitTarget)
+    }
+
     func testScreenNavigationTitles() {
         XCTAssertEqual("Journals", OCamlDemoScreen.journal.navigationTitle)
         XCTAssertEqual("Tasks", OCamlDemoScreen.tasks.navigationTitle)

@@ -130,6 +130,10 @@ let action_for_request ~screen ~action ~payload =
     Result.map
       (fun (id, _) -> Model.Add_sibling_block id)
       (outliner_payload action payload)
+  | "outliner", "deleteBlock" ->
+    Result.map
+      (fun (id, _) -> Model.Delete_block id)
+      (outliner_payload action payload)
   | "outliner", "indent" ->
     Result.map (fun (id, _) -> Model.Indent_block id) (outliner_payload action payload)
   | "outliner", "outdent" ->

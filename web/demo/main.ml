@@ -27,6 +27,7 @@ external render_root : root -> element -> unit = "render" [@@mel.send]
 external get_element_by_id : string -> container = "getElementById" [@@mel.scope "document"]
 external event_target : event -> event_target = "target" [@@mel.get]
 external target_value : event_target -> string = "value" [@@mel.get]
+external target_selection_start : event_target -> int = "selectionStart" [@@mel.get]
 external event_key : event -> string = "key" [@@mel.get]
 external event_is_composing : event -> bool = "isComposing" [@@mel.get]
 external prevent_default : event -> unit = "preventDefault" [@@mel.send]
@@ -52,6 +53,7 @@ let remote_journals : Model.journal list ref = ref []
 let remote_blocks : Model.block list ref = ref []
 let focused_block_id : int option ref = ref None
 let pending_insert_ids : int list option ref = ref None
+let pending_delete_previous_id : int option ref = ref None
 let root = create_root (get_element_by_id "root")
 
 let element name children =
@@ -152,7 +154,7 @@ let rec render () =
         }]
       [ icon ]
   in
-  let input ~value ~auto_focus ~on_change ~on_focus ~on_enter =
+  let input ~value ~auto_focus ~on_change ~on_focus ~on_enter ~on_backspace =
     let activate_editor () = on_focus () in
     create_leaf
       "input"
@@ -170,7 +172,12 @@ let rec render () =
                     && not (event_is_composing event)
                  then (
                    prevent_default event;
-                   on_enter ()))
+                   on_enter ())
+                 else if String.equal (event_key event) "Backspace"
+                         && target_selection_start (event_target event) = 0
+                 then (
+                   prevent_default event;
+                   on_backspace ()))
            ; value
            }])
   in
@@ -224,6 +231,7 @@ let rec render () =
       let model_action =
         match action, content with
         | "setContent", Some value -> Model.Set_block_content (id, value)
+        | "deleteBlock", _ -> Model.Delete_block id
         | "indent", _ -> Model.Indent_block id
         | "outdent", _ -> Model.Outdent_block id
         | _ -> Model.Set_block_content (id, "")
@@ -245,19 +253,40 @@ let rec render () =
           (current_blocks ());
       render ())
   in
+  let delete_block id =
+    let rec previous_block previous = function
+      | [] -> None
+      | (block : Model.block) :: rest ->
+        if block.id = id then previous else previous_block (Some block) rest
+    in
+    match previous_block None (current_blocks ()) with
+    | None -> ()
+    | Some previous ->
+      focused_block_id := Some previous.id;
+      if native_mode
+      then (
+        pending_delete_previous_id := Some previous.id;
+        send "deleteBlock" [ "id", `Int id ])
+      else (
+        update (Model.Delete_block id);
+        render ())
+  in
   let outliner =
     let block_item (block : Model.block) =
+      let is_focused = !focused_block_id = Some block.id in
       element_with_props
         "li"
         [%mel.obj
           { className = "block"
-          ; key = string_of_int block.id
+          ; key =
+              string_of_int block.id
+              ^ if is_focused then "-focused" else "-idle"
           ; style = [%mel.obj { marginLeft = string_of_int (block.depth * 22) ^ "px" }]
           }]
         ([ element "span" [ text "*" ]
          ; input
              ~value:block.content
-             ~auto_focus:(!focused_block_id = Some block.id)
+             ~auto_focus:is_focused
              ~on_change:(fun content ->
                dispatch_block "setContent" block.id (Some content))
              ~on_focus:(fun () ->
@@ -266,6 +295,7 @@ let rec render () =
                  focused_block_id := Some block.id;
                  render ()))
              ~on_enter:(fun () -> insert_sibling block.id)
+             ~on_backspace:(fun () -> delete_block block.id)
          ]
          @
          [ element_with_props
@@ -366,6 +396,14 @@ let receive_snapshot payload =
                 if List.mem block.id existing_ids then None else Some block.id)
               next_blocks;
           pending_insert_ids := None
+       | None -> ());
+       (match !pending_delete_previous_id with
+        | Some previous_id ->
+          if List.exists
+               (fun (block : Model.block) -> block.id = previous_id)
+               next_blocks
+          then focused_block_id := Some previous_id;
+          pending_delete_previous_id := None
         | None -> ());
        remote_blocks := next_blocks;
        journal_detail := true
